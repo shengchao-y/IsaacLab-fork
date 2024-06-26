@@ -82,6 +82,9 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
         # -- init buffers
         self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
 
+        # solving shaking robot problem
+        self.root_pos_w_z = 1.34 * torch.ones(self.num_envs, device=self.device)
+
         # setup the action and observation spaces for Gym
         self._configure_gym_env_spaces()
 
@@ -179,6 +182,9 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
         self.reset_time_outs = self.termination_manager.time_outs
         # -- reward computation
         self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
+
+        asset = self.scene['robot']
+        self.root_pos_w_z = asset.data.root_pos_w[:,2].clone()
 
         # -- reset envs that terminated/timed-out and log the episode information
         reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
@@ -342,3 +348,6 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
 
         # reset the episode length buffer
         self.episode_length_buf[env_ids] = 0
+
+        asset = self.scene['robot']
+        self.root_pos_w_z[env_ids] = asset.data.root_pos_w[env_ids,2].clone()
