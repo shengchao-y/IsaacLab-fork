@@ -308,6 +308,7 @@ class ActionManager(ManagerBase):
             term_actions = action[:, idx : idx + term.action_dim]
             term.process_actions(term_actions)
             idx += term.action_dim
+        return torch.clip(action, -1.0, 1.0)
 
     def apply_action(self) -> None:
         """Applies the actions to the environment/simulation.

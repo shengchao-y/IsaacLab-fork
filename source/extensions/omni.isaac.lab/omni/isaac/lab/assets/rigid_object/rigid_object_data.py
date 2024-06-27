@@ -42,6 +42,7 @@ class RigidObjectData:
         # Initialize constants
         self.GRAVITY_VEC_W = torch.tensor((0.0, 0.0, -1.0), device=self.device).repeat(self._root_physx_view.count, 1)
         self.FORWARD_VEC_B = torch.tensor((1.0, 0.0, 0.0), device=self.device).repeat(self._root_physx_view.count, 1)
+        self.SIDE_VEC = torch.tensor((0.0, 1.0, 0.0), device=self.device).repeat(self._root_physx_view.count, 1)
 
         # Initialize buffers for finite differencing
         self._previous_body_vel_w = torch.zeros((self._root_physx_view.count, 1, 6), device=self.device)
