@@ -50,7 +50,7 @@ def base_heading_proj(
     to_target_pos[:, 2] = 0.0
     to_target_dir = math_utils.normalize(to_target_pos)
     # compute base forward vector
-    heading_vec = math_utils.quat_rotate(asset.data.root_quat_w, asset.data.forward_vec_b)
+    heading_vec = math_utils.quat_rotate(asset.data.root_quat_w, asset.data.FORWARD_VEC_B)
     # compute dot product between heading and target direction
     heading_proj = torch.bmm(heading_vec.view(env.num_envs, 1, 3), to_target_dir.view(env.num_envs, 3, 1))
 
@@ -73,3 +73,16 @@ def base_angle_to_target(
     angle_to_target = torch.atan2(torch.sin(angle_to_target), torch.cos(angle_to_target))
 
     return angle_to_target.unsqueeze(-1)
+
+def base_eulers(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Yaw, pitch and roll of the base in the simulation world frame."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # extract euler angles (in world frame)
+    roll, pitch, yaw = math_utils.euler_xyz_from_quat(asset.data.root_quat_w)
+    # normalize angle to [-pi, pi]
+    roll = torch.atan2(torch.sin(roll), torch.cos(roll))
+    pitch = torch.atan2(torch.sin(pitch), torch.cos(pitch))
+    yaw = torch.atan2(torch.sin(yaw), torch.cos(yaw))
+
+    return torch.cat((yaw.unsqueeze(-1), pitch.unsqueeze(-1), roll.unsqueeze(-1)), dim=-1)
