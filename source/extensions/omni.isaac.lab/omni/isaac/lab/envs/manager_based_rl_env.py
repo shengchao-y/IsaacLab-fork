@@ -156,7 +156,7 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
             A tuple containing the observations, rewards, resets (terminated and truncated) and extras.
         """
         # process actions
-        action = self.action_manager.process_action(action)
+        self.action_manager.process_action(action)
         # perform physics stepping
         for _ in range(self.cfg.decimation):
             self._sim_step_counter += 1
