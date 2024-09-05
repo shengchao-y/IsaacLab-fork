@@ -150,7 +150,8 @@ def noside_posture_bonus(
 ) -> torch.Tensor:
     """Reward for maintaining an upright posture."""
     asset: Articulation = env.scene[asset_cfg.name]
-    side_proj = math_utils.quat_rotate(asset.data.root_quat_w, asset.data.SIDE_VEC)[:,1]
+    side_vec = torch.tensor((0.0, 1.0, 0.0), device=asset.data.device).repeat(asset.data.GRAVITY_VEC_W.shape[0], 1)
+    side_proj = math_utils.quat_rotate(asset.data.root_quat_w, side_vec)[:,1]
     return (side_proj > threshold).float()
 
 def off_track(
