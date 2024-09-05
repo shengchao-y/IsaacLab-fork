@@ -141,8 +141,8 @@ def forward_speed(
 ) -> torch.Tensor:
     """penalty for going off track."""
     asset: Articulation = env.scene[asset_cfg.name]
-    result = asset.data.root_vel_w[:, 0] / 10.0
-    result[result>1.0] = 1.0
+    result = asset.data.root_vel_w[:, 0] / 6.0
+    result[result>1.6] = 1.6
     return result
 
 def noside_posture_bonus(

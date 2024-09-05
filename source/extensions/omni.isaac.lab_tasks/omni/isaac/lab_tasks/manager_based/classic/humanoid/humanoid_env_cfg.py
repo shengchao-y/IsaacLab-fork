@@ -93,7 +93,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # lights
     light = AssetBaseCfg(
         prim_path="/World/light",
-        spawn=sim_utils.DistantLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
 
 
@@ -187,9 +187,9 @@ class RewardsCfg:
 
     # (1) Reward for moving forward
     # progress = RewTerm(func=mdp.progress_reward, weight=1.0, params={"target_pos": (1000.0, 0.0, 0.0)})
-    progress = RewTerm(func=mdp.forward_speed, weight=1.0)
+    progress = RewTerm(func=mdp.forward_speed, weight=3.0)
     # (2) Stay alive bonus
-    alive = RewTerm(func=mdp.is_alive, weight=2.0)
+    alive = RewTerm(func=mdp.is_alive, weight=1.0)
     # (3) Reward for non-upright posture
     # upright = RewTerm(func=mdp.upright_posture_bonus, weight=0.1, params={"threshold": 0.93})
     # Reward for not turning aside
