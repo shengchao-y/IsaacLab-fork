@@ -73,3 +73,16 @@ def base_angle_to_target(
     angle_to_target = torch.atan2(torch.sin(angle_to_target), torch.cos(angle_to_target))
 
     return angle_to_target.unsqueeze(-1)
+
+def base_eulers(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Yaw, pitch and roll of the base in the simulation world frame."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # extract euler angles (in world frame)
+    roll, pitch, yaw = math_utils.euler_xyz_from_quat(asset.data.root_quat_w)
+    # normalize angle to [-pi, pi]
+    roll = torch.atan2(torch.sin(roll), torch.cos(roll))
+    pitch = torch.atan2(torch.sin(pitch), torch.cos(pitch))
+    yaw = torch.atan2(torch.sin(yaw), torch.cos(yaw))
+
+    return torch.cat((yaw.unsqueeze(-1), pitch.unsqueeze(-1), roll.unsqueeze(-1)), dim=-1)

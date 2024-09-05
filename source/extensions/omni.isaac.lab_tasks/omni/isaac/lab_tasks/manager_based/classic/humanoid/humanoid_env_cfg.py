@@ -93,7 +93,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # lights
     light = AssetBaseCfg(
         prim_path="/World/light",
-        spawn=sim_utils.DistantLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
 
 
@@ -142,17 +142,15 @@ class ObservationsCfg:
         base_height = ObsTerm(func=mdp.base_pos_z)
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.25)
-        base_yaw_roll = ObsTerm(func=mdp.base_yaw_roll)
-        base_angle_to_target = ObsTerm(func=mdp.base_angle_to_target, params={"target_pos": (1000.0, 0.0, 0.0)})
-        base_up_proj = ObsTerm(func=mdp.base_up_proj)
-        base_heading_proj = ObsTerm(func=mdp.base_heading_proj, params={"target_pos": (1000.0, 0.0, 0.0)})
-        joint_pos_norm = ObsTerm(func=mdp.joint_pos_limit_normalized)
-        joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.1)
+        base_yaw_pitch_roll = ObsTerm(func=mdp.base_eulers)
         feet_body_forces = ObsTerm(
             func=mdp.body_incoming_wrench,
             scale=0.01,
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["left_foot", "right_foot"])},
         )
+
+        joint_pos_norm = ObsTerm(func=mdp.joint_pos_limit_normalized)
+        joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.1)
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
@@ -188,21 +186,24 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Reward for moving forward
-    progress = RewTerm(func=mdp.progress_reward, weight=1.0, params={"target_pos": (1000.0, 0.0, 0.0)})
+    # progress = RewTerm(func=mdp.progress_reward, weight=1.0, params={"target_pos": (1000.0, 0.0, 0.0)})
+    progress = RewTerm(func=mdp.forward_speed, weight=3.0)
     # (2) Stay alive bonus
-    alive = RewTerm(func=mdp.is_alive, weight=2.0)
+    alive = RewTerm(func=mdp.is_alive, weight=1.0)
     # (3) Reward for non-upright posture
-    upright = RewTerm(func=mdp.upright_posture_bonus, weight=0.1, params={"threshold": 0.93})
+    # upright = RewTerm(func=mdp.upright_posture_bonus, weight=0.1, params={"threshold": 0.93})
+    # Reward for not turning aside
+    no_side_turn = RewTerm(func=mdp.noside_posture_bonus, weight=0.1, params={"threshold": 0.93})
     # (4) Reward for moving in the right direction
-    move_to_target = RewTerm(
-        func=mdp.move_to_target_bonus, weight=0.5, params={"threshold": 0.8, "target_pos": (1000.0, 0.0, 0.0)}
-    )
+    # move_to_target = RewTerm(
+    #     func=mdp.move_to_target_bonus, weight=0.5, params={"threshold": 0.8, "target_pos": (1000.0, 0.0, 0.0)}
+    # )
     # (5) Penalty for large action commands
     action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
     # (6) Penalty for energy consumption
     energy = RewTerm(
         func=mdp.power_consumption,
-        weight=-0.005,
+        weight=-0.05,
         params={
             "gear_ratio": {
                 ".*_waist.*": 67.5,
@@ -236,6 +237,12 @@ class RewardsCfg:
             },
         },
     )
+
+    # penalty for moving in y direction
+    off_track = RewTerm(func=mdp.off_track, weight=-1.0)
+
+    # reward for heading forward
+    # heading_forward = RewTerm(func=mdp.heading_forward, weight=0.1)
 
 
 @configclass

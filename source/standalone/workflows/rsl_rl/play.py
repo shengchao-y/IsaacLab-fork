@@ -55,7 +55,7 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
     export_policy_as_jit,
     export_policy_as_onnx,
 )
-
+import time
 
 def main():
     """Play with RSL-RL agent."""
@@ -114,6 +114,7 @@ def main():
         with torch.inference_mode():
             # agent stepping
             actions = policy(obs)
+            time.sleep(0.1)
             # env stepping
             obs, _, _, _ = env.step(actions)
         if args_cli.video:
