@@ -33,7 +33,7 @@ class HumandribbleEnvCfg(DirectRLEnvCfg):
     decimation = 2
     action_scale = 1.0
     num_actions = 21
-    num_observations = 80
+    num_observations = 81
     num_states = 0
 
     # simulation
@@ -209,22 +209,24 @@ class HumandribbleEnv(LocomotionEnv):
         ball_pos_b = quat_rotate_inverse(self.torso_rotation, ball_position-self.torso_position)
         ball_vel_b = quat_rotate_inverse(self.torso_rotation, ball_vel_lin)
 
-        # orientation adjust to the turned direction
-        roll, pitch, yaw = get_euler_xyz(self.torso_rot_local)
+        # the roll angle will change from -pi to pi (angle wrapping) in poleonhuman, not good for training
+        # roll, pitch, yaw = get_euler_xyz(self.torso_rot_local)
 
         obs = torch.cat(
             (
-                torso_pos_local[:,1:],
-                self.robot.data.root_lin_vel_b,
-                self.robot.data.root_ang_vel_b * self.cfg.angular_velocity_scale,
-                normalize_angle(roll).unsqueeze(-1),
-                normalize_angle(pitch).unsqueeze(-1),
-                normalize_angle(yaw).unsqueeze(-1),
-                ball_pos_b,
-                ball_vel_b,
-                self.dof_pos_scaled,
-                self.dof_vel * self.cfg.dof_vel_scale,
-                self.actions,
+                torso_pos_local[:,1:],                                              # 2
+                self.robot.data.root_lin_vel_b,                                     # 3
+                self.robot.data.root_ang_vel_b * self.cfg.angular_velocity_scale,   # 3
+                # normalize_angle(roll).unsqueeze(-1),
+                # normalize_angle(pitch).unsqueeze(-1),
+                # normalize_angle(yaw).unsqueeze(-1),
+                # the roll angle will change from -pi to pi (angle wrapping) in poleonhuman, not good for training
+                self.torso_rot_local,                                               # 4
+                ball_pos_b,                                                         # 3
+                ball_vel_b,                                                         # 3
+                self.dof_pos_scaled,                                                # 21
+                self.dof_vel * self.cfg.dof_vel_scale,                              # 21
+                self.actions,                                                       # 21
             ), dim=-1
         )
 
