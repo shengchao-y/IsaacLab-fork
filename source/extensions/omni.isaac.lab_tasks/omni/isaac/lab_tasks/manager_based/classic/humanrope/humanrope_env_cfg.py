@@ -168,6 +168,7 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for the policy."""
 
+        base_y_env = ObsTerm(func=mdp.base_pos_y_env)
         base_height = ObsTerm(func=mdp.base_pos_z)
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.25)

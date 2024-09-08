@@ -29,8 +29,10 @@ import math
 
 _go2_init_pos = (0.0, 0.0, 0.4+0.85+0.15)
 _beam_length = 50
-_beam_angle = math.pi/6
-_beam_quat = (0.9659258, 0, -0.258819, 0)
+## Change together
+_beam_angle = math.pi/9
+_beam_quat = (0.9848078, 0, -0.1736482, 0)
+##
 _beam_x = _beam_length*math.cos(_beam_angle)/2
 _beam_z = 0.8+_beam_length*math.sin(_beam_angle)/2
 

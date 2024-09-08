@@ -86,3 +86,9 @@ def base_eulers(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg
     yaw = torch.atan2(torch.sin(yaw), torch.cos(yaw))
 
     return torch.cat((yaw.unsqueeze(-1), pitch.unsqueeze(-1), roll.unsqueeze(-1)), dim=-1)
+
+def base_pos_y_env(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Root pos_y in the environment frame."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    return (asset.data.root_pos_w[:, 1] - env.scene.env_origins[:,1]).unsqueeze(-1)
