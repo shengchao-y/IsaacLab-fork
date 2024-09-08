@@ -142,7 +142,9 @@ class ObservationsCfg:
         base_height = ObsTerm(func=mdp.base_pos_z)
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.25)
-        base_yaw_pitch_roll = ObsTerm(func=mdp.base_eulers)
+        # the roll angle will change from -pi to pi (angle wrapping) in poleonhuman, not good for training
+        # base_yaw_pitch_roll = ObsTerm(func=mdp.base_eulers)
+        root_quat = ObsTerm(func=mdp.root_quat_w)
         feet_body_forces = ObsTerm(
             func=mdp.body_incoming_wrench,
             scale=0.01,

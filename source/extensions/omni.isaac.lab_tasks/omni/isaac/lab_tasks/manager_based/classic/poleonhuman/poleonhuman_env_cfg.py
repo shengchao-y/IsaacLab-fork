@@ -177,8 +177,8 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for the policy."""
         # pole
-        pole0_position_rel = ObsTerm(func=mdp.object_pose_rel, params={"object_name": "pole0"})
-        pole0_lin_vel = ObsTerm(func=mdp.object_lin_vel, params={"object_name": "pole0"})
+        pole0_position_rel = ObsTerm(func=mdp.object_pose_rel_b, params={"object_name": "pole0"})
+        pole0_lin_vel = ObsTerm(func=mdp.object_lin_vel_rel_b, params={"object_name": "pole0"})
         pole0_ang_vel = ObsTerm(func=mdp.object_ang_vel, params={"object_name": "pole0"})
         pole0_quat = ObsTerm(func=mdp.object_quat, params={"object_name": "pole0"})
         # pole1_position_rel = ObsTerm(func=mdp.object_pose_rel, params={"object_name": "pole1"})
@@ -253,7 +253,7 @@ class RewardsCfg:
     # pole0_target_tracking = RewTerm(func=mdp.pole_target_tracking, weight=1.0, params={"object_name": "pole0", "target_pos": _pole0_init_pose})
     # pole1_target_tracking = RewTerm(func=mdp.pole_target_tracking, weight=1.0, params={"object_name": "pole1", "target_pos": _pole1_init_pose})
     # Reward for moving poles in x direction
-    pole0_moving = RewTerm(func=mdp.pole_moving, weight=1.0, params={"object_name": "pole0"})
+    pole0_moving = RewTerm(func=mdp.pole_moving, weight=1.0, params={"object_name": "pole0", "target_vel": 0.5})
     # pole1_moving = RewTerm(func=mdp.pole_moving, weight=1.0, params={"object_name": "pole1"})
     # progress = RewTerm(func=mdp.progress_reward, weight=1.0, params={"target_pos": (1000.0, 0.0, 0.0)})
     # (2) Stay alive bonus

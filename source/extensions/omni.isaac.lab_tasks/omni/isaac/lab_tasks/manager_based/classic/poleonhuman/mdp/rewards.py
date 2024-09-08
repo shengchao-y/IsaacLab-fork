@@ -159,11 +159,11 @@ def pole_target_tracking(
     return torch.exp(-(obj.data.root_pos_w - env.scene.env_origins - torch.tensor(target_pos, device=env.device)).norm(dim=-1))
 
 def pole_moving(
-    env: ManagerBasedRLEnv, object_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    env: ManagerBasedRLEnv, object_name: str, target_vel: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """reward for tracking pole's target position."""
     obj: Articulation = env.scene[object_name]
-    return -torch.abs(2*obj.data.root_vel_w[:, 0] - 1.0)+1.0
+    return -torch.abs(obj.data.root_vel_w[:, 0]/target_vel - 1.0) + 1.0
 
 def object_off_track(
     env: ManagerBasedRLEnv, object_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
