@@ -15,9 +15,9 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
 @configclass
 class Go2beamPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     rewards_expect = {
-        "rew_progress": 1.0,
-        "rew_alive": 2.0,
-        "rew_no_side_turn": 0.1,
+        "rew_progress": 2.0,
+        "rew_alive": 1.0,
+        "rew_orientation": 1.0,
     }
     num_steps_per_env = 32
     max_iterations = 50000

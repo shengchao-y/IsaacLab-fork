@@ -22,6 +22,8 @@ import omni.isaac.lab_tasks.manager_based.classic.go2beam.mdp as mdp
 from omni.isaac.lab.assets import RigidObjectCfg
 from omni.isaac.lab_assets.unitree import UNITREE_GO2_CFG  # isort: skip
 import math
+import torch
+import omni.isaac.lab.utils.math as math_utils
 
 ##
 # Scene definition
@@ -30,8 +32,10 @@ import math
 _go2_init_pos = (0.0, 0.0, 0.4+0.85+0.15)
 _beam_length = 50
 ## Change together
-_beam_angle = math.pi/9
-_beam_quat = (0.9848078, 0, -0.1736482, 0)
+# _beam_angle = 0 #math.pi/18
+# _beam_quat = (1.0, 0.0, 0.0, 0.0)
+_beam_angle = math.pi/6
+_beam_quat = (0.9659258, 0.0, -0.258819, 0.0)
 ##
 _beam_x = _beam_length*math.cos(_beam_angle)/2
 _beam_z = 0.8+_beam_length*math.sin(_beam_angle)/2
@@ -55,7 +59,16 @@ class MySceneCfg(InteractiveSceneCfg):
 
     # robot
     robot = UNITREE_GO2_CFG.replace(prim_path="{ENV_REGEX_NS}/robot",
-                            init_state=UNITREE_GO2_CFG.init_state.replace(pos=_go2_init_pos,rot=_beam_quat),)
+                                    spawn=UNITREE_GO2_CFG.spawn.replace(articulation_props=UNITREE_GO2_CFG.spawn.articulation_props.replace(enabled_self_collisions=True)),
+                                    init_state=UNITREE_GO2_CFG.init_state.replace(pos=_go2_init_pos,
+                                                                                rot=_beam_quat,
+                                                                                joint_pos={
+                                                                                    ".*L_hip_joint": -0.3,
+                                                                                    ".*R_hip_joint": 0.3,
+                                                                                    "F[L,R]_thigh_joint": 0.8,
+                                                                                    "R[L,R]_thigh_joint": 1.0,
+                                                                                    ".*_calf_joint": -1.5,
+                                                                                },),)
 
     # lights
     light = AssetBaseCfg(
@@ -92,12 +105,18 @@ class CommandsCfg:
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.25, use_default_offset=True)
 
-    joint_effort = mdp.JointEffortActionCfg(
-        asset_name="robot",
-        joint_names=[".*"],
-        scale=23.5,
-    )
+    # joint_effort = mdp.JointEffortActionCfg(
+    #     asset_name="robot",
+    #     joint_names=[".*"],
+    #     scale=45
+    #     # {
+    #     #     ".*_hip_joint": 23.7,
+    #     #     ".*_thigh_joint": 23.7,
+    #     #     ".*_calf_joint": 45.43,
+    #     # },
+    # )
 
 
 @configclass
@@ -158,40 +177,32 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Reward for moving forward
-    rew_progress = RewTerm(func=mdp.forward_speed, weight=1.0)
+    rew_progress = RewTerm(func=mdp.forward_speed, weight=2.0)
     # (2) Stay alive bonus
-    rew_alive = RewTerm(func=mdp.is_alive, weight=2.0)
-    # (3) Reward for not turning aside
-    rew_no_side_turn = RewTerm(func=mdp.noside_posture_bonus, weight=0.1, params={"threshold": 0.93})
+    rew_alive = RewTerm(func=mdp.is_alive, weight=1.0)
+    # (3) Reward for maintaining desired orientation
+    rew_orientation = RewTerm(func=mdp.keep_orientation, weight=1.0, params={"target_quat": math_utils.quat_inv(torch.tensor(_beam_quat)).unsqueeze(0)})
 
     # (5) Penalty for large action commands
-    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
-    # (6) Penalty for energy consumption
-    energy = RewTerm(
-        func=mdp.power_consumption,
-        weight=-0.05*0.5,
-        params={
-            "gear_ratio": {".*": 23.5}
-        },
-    )
-    # (7) Penalty for reaching close to joint limits
-    joint_limits = RewTerm(
-        func=mdp.joint_limits_penalty_ratio,
-        weight=-0.25*0.5,
-        params={
-            "threshold": 0.98,
-            "gear_ratio": {".*": 23.5},
-        },
-    )
+    # action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01*0.5)
 
     # penalty for moving in y direction
     off_track = RewTerm(func=mdp.off_track, weight=-1.0)
 
     # penalty for moving away from beam (avoid jumping)
-    jump_up = RewTerm(func=mdp.jump_up, weight=-1.0, params={"slope": _beam_angle})
+    # jump_up = RewTerm(func=mdp.jump_up, weight=-1.0, params={"slope": _beam_angle})
 
-    # reward for heading forward
-    # heading_forward = RewTerm(func=mdp.heading_forward, weight=0.1)
+    # penalty for left/right feet crossing
+    feet_cross = RewTerm(func=mdp.feet_cross, weight=-1.0)
+
+    # some energy related penalties
+    # lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
+    # dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-2.0e-4)
+    # dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
+    # action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+
+    # Reward when the asset's feet are under the corresponding hips.
+    # feet_under_hip = RewTerm(func=mdp.feet_under_hip, weight=0.25)
 
 
 @configclass
@@ -202,6 +213,13 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # (2) Terminate if the robot falls
     torso_height = DoneTerm(func=mdp.fall_off_beam, params={"minimum_height": 0.05+0.26, "slope_func": slope_func})
+    # (3) Terminate if the robot deviates too much from target orientation
+    torso_orientation = DoneTerm(func=mdp.bad_orientation_quat, params={"limit_angle_diff": math.pi/6,
+                                                                        "target_quat": math_utils.quat_inv(torch.tensor(_beam_quat)).unsqueeze(0)} )
+    # (4) Terminate if the robot left and right feet cross
+    # feet_cross = DoneTerm(func=mdp.feet_cross)
+    # (5) Terminate if any foot is off the beam
+    feet_off = DoneTerm(func=mdp.feet_off, params={"slope_func":slope_func})
 
 
 @configclass

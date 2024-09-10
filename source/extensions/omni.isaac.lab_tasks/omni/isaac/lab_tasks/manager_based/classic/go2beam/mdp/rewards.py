@@ -18,6 +18,7 @@ import math
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
+from omni.isaac.core.utils.torch.rotations import normalize_angle
 
 
 def upright_posture_bonus(
@@ -146,6 +147,19 @@ def forward_speed(
     result[result>1.0] = 1.0
     return result
 
+def forward_speed_feet(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """reward for going forward."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    FL_foot_x = asset.data.body_vel_w[:,asset.data.body_names.index("FL_foot"),0]
+    FR_foot_x = asset.data.body_vel_w[:,asset.data.body_names.index("FR_foot"),0]
+    RL_foot_x = asset.data.body_vel_w[:,asset.data.body_names.index("RL_foot"),0]
+    RR_foot_x = asset.data.body_vel_w[:,asset.data.body_names.index("RR_foot"),0]
+    result = (FL_foot_x+FR_foot_x+RL_foot_x+RR_foot_x) / 2.0
+    result[result>1.0] = 1.0
+    return result
+
 def noside_posture_bonus(
     env: ManagerBasedRLEnv, threshold: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
@@ -178,3 +192,47 @@ def jump_up(
     vel_perp_beam = asset.data.root_vel_w[:,2]*math.cos(slope) - asset.data.root_vel_w[:,0]*math.sin(slope)
     vel_perp_beam[vel_perp_beam<0] = 0
     return vel_perp_beam
+
+def keep_orientation(
+    env: ManagerBasedRLEnv, target_quat: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """reward for keeping close to target orientation."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    quat_diff = math_utils.quat_mul(target_quat.to(env.device).repeat(env.num_envs, 1), 
+                                    asset.data.root_quat_w)
+    eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
+    return torch.exp(-torch.norm(eulers_diff, dim=-1)*2)
+
+
+def feet_cross(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Penalty when the asset's left and right feet cross.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    FL_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("FL_foot"),1]
+    FR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("FR_foot"),1]
+    RL_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RL_foot"),1]
+    RR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RR_foot"),1]
+    cross_front = FR_foot_y - FL_foot_y + 0.02
+    cross_rear = RR_foot_y - RL_foot_y + 0.02
+    cross_front[cross_front<0] = 0
+    cross_rear[cross_rear<0] = 0
+    return cross_front + cross_rear
+
+def feet_under_hip(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward when the asset's feet are under the corresponding hips.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    FL_foot_x = asset.data.body_pos_w[:,asset.data.body_names.index("FL_foot"),0]
+    FR_foot_x = asset.data.body_pos_w[:,asset.data.body_names.index("FR_foot"),0]
+    RL_foot_x = asset.data.body_pos_w[:,asset.data.body_names.index("RL_foot"),0]
+    RR_foot_x = asset.data.body_pos_w[:,asset.data.body_names.index("RR_foot"),0]
+    return torch.exp(-torch.abs(FL_foot_x-asset.data.root_pos_w[:,0]-0.22)) \
+        + torch.exp(-torch.abs(FR_foot_x-asset.data.root_pos_w[:,0]-0.22)) \
+        + torch.exp(-torch.abs(asset.data.root_pos_w[:,0]-RL_foot_x-0.22)) \
+        + torch.exp(-torch.abs(asset.data.root_pos_w[:,0]-RR_foot_x-0.22))
