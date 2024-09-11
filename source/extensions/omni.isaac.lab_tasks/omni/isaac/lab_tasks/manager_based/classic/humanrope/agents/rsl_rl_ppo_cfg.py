@@ -15,9 +15,9 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
 @configclass
 class HumanropePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     rewards_expect = {
-        "progress": 1.0,
-        "alive": 2.0,
-        "no_side_turn": 0.1,
+        "rew_progress": 1.0,
+        # "rew_alive": 2.0,
+        # "rew_orientation": 0.1,
     }
     num_steps_per_env = 32
     max_iterations = 50000

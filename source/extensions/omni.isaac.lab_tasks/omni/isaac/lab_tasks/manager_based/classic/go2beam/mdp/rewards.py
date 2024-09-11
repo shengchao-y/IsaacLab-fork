@@ -139,11 +139,12 @@ class power_consumption(ManagerTermBase):
         return torch.sum(torch.abs(env.action_manager.action * asset.data.joint_vel * self.gear_ratio_scaled), dim=-1)
 
 def forward_speed(
-    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    env: ManagerBasedRLEnv, slope: float,  target_vel: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """reward for going forward."""
     asset: Articulation = env.scene[asset_cfg.name]
-    result = asset.data.root_vel_w[:, 0].clone() / 2.0
+    vel_along_beam = asset.data.root_vel_w[:,2]*math.sin(slope) - asset.data.root_vel_w[:,0]*math.cos(slope)
+    result = vel_along_beam / target_vel
     result[result>1.0] = 1.0
     return result
 

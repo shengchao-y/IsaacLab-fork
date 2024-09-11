@@ -130,7 +130,7 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Reward for moving forward
-    rew_progress = RewTerm(func=mdp.forward_speed, weight=3.0)
+    rew_progress = RewTerm(func=mdp.forward_speed, weight=3.0, params={"target_vel": 10.0})
     # (2) Stay alive bonus
     rew_alive = RewTerm(func=mdp.is_alive, weight=1.0)
     # (3) Reward for maintaining desired orientation with less weight on pitch than roll and yaw

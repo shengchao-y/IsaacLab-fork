@@ -30,7 +30,7 @@ import omni.isaac.lab.utils.math as math_utils
 ##
 
 _go2_init_pos = (0.0, 0.0, 0.4+0.85+0.15)
-_beam_length = 50
+_beam_length = 100
 ## Change together
 # _beam_angle = 0 #math.pi/18
 # _beam_quat = (1.0, 0.0, 0.0, 0.0)
@@ -177,7 +177,7 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Reward for moving forward
-    rew_progress = RewTerm(func=mdp.forward_speed, weight=2.0)
+    rew_progress = RewTerm(func=mdp.forward_speed, weight=2.0, params={"slope": _beam_angle,"target_vel": 2.0})
     # (2) Stay alive bonus
     rew_alive = RewTerm(func=mdp.is_alive, weight=1.0)
     # (3) Reward for maintaining desired orientation
