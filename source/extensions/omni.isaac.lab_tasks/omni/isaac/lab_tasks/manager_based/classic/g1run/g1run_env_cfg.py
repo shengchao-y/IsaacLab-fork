@@ -70,7 +70,20 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot",
+                                           joint_names=[".*_hip_yaw_joint",
+                                                        ".*_hip_roll_joint",
+                                                        ".*_hip_pitch_joint",
+                                                        ".*_knee_joint",
+                                                        "torso_joint",
+                                                        ".*_ankle_pitch_joint", 
+                                                        ".*_ankle_roll_joint",
+                                                        ".*_shoulder_pitch_joint",
+                                                        ".*_shoulder_roll_joint",
+                                                        ".*_shoulder_yaw_joint",
+                                                        ".*_elbow_pitch_joint",
+                                                        ".*_elbow_roll_joint",], 
+                                           scale=0.5, use_default_offset=True)
 
 
 @configclass
