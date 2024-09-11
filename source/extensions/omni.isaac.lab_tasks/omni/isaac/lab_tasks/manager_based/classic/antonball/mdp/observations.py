@@ -92,7 +92,7 @@ def object_pose_rel_b(env: ManagerBasedEnv, object_name: str, asset_cfg: SceneEn
     # extract the used quantities (to enable type-hinting)
     obj: RigidObject = env.scene[object_name]
     asset: Articulation = env.scene[asset_cfg.name]
-    return math_utils.quat_rotate_inverse(asset.data.root_quat_w, obj.data.root_pos_w[:, :3] - asset.data.root_pos_w[:, :3])
+    return math_utils.quat_rotate_inverse(asset.data.root_quat_w, obj.data.root_pos_w - asset.data.root_pos_w)
 
 def object_lin_vel_rel_b(env: ManagerBasedEnv, object_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Relative object linear velocity in the robot frame."""

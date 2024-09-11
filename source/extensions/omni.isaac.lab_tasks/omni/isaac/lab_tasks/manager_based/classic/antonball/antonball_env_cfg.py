@@ -113,13 +113,13 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for the policy."""
         # pole
-        pole_pos_rel = ObsTerm(func=mdp.object_pose_rel_b, params={"object_name": "pole"})
-        pole_lin_vel = ObsTerm(func=mdp.object_lin_vel_rel_b, params={"object_name": "pole"})
+        pole_pos_rel_b = ObsTerm(func=mdp.object_pose_rel_b, params={"object_name": "pole"})
+        pole_lin_vel_rel_b = ObsTerm(func=mdp.object_lin_vel_rel_b, params={"object_name": "pole"})
         pole_ang_vel = ObsTerm(func=mdp.object_ang_vel, params={"object_name": "pole"})
         pole_quat = ObsTerm(func=mdp.object_quat, params={"object_name": "pole"})
         # ball
-        ball_pos_rel = ObsTerm(func=mdp.object_pose_rel_b, params={"object_name": "ball"})
-        ball_lin_vel = ObsTerm(func=mdp.object_lin_vel_rel_b, params={"object_name": "ball"})
+        ball_pos_rel_b = ObsTerm(func=mdp.object_pose_rel_b, params={"object_name": "ball"})
+        ball_lin_vel_rel_b = ObsTerm(func=mdp.object_lin_vel_rel_b, params={"object_name": "ball"})
 
         # robot non-joints
         base_pos = ObsTerm(func=mdp.root_pos_w)
@@ -188,20 +188,20 @@ class EventCfg:
 class RewardsCfg:
     """Reward terms for the MDP."""
     # (1) Reward for moving poles in x direction
-    pole_moving = RewTerm(func=mdp.pole_moving, weight=1.0, params={"object_name": "pole", "target_vel": 1.0})
+    rew_pole_moving = RewTerm(func=mdp.pole_moving, weight=1.0, params={"object_name": "pole", "target_vel": 1.0})
     # (2) Stay alive bonus
-    alive = RewTerm(func=mdp.is_alive, weight=2.0)
+    rew_alive = RewTerm(func=mdp.is_alive, weight=2.0)
 
     # (5) Penalty for large action commands
-    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.005)
+    cost_action_l2 = RewTerm(func=mdp.action_l2, weight=-0.005)
     # (6) Penalty for energy consumption
-    energy = RewTerm(func=mdp.power_consumption, weight=-0.05, params={"gear_ratio": {".*": 15.0}})
+    cost_energy = RewTerm(func=mdp.power_consumption, weight=-0.05, params={"gear_ratio": {".*": 15.0}})
     # (7) Penalty for reaching close to joint limits
-    joint_limits = RewTerm(
+    cost_joint_limits = RewTerm(
         func=mdp.joint_limits_penalty_ratio, weight=-0.1, params={"threshold": 0.99, "gear_ratio": {".*": 15.0}}
     )
     # penalty for moving in y direction
-    pole_off_track = RewTerm(func=mdp.object_off_track, weight=-1.0, params={"object_name": "pole"})
+    cost_pole_off_track = RewTerm(func=mdp.object_off_track, weight=-1.0, params={"object_name": "pole"})
 
 
 @configclass
