@@ -129,8 +129,8 @@ class ObservationsCfg:
 
         base_y_env = ObsTerm(func=mdp.base_pos_y_env)
         base_height_rel = ObsTerm(func=mdp.base_pos_z_beam, params={"slope_func": slope_func})
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.25)
+        base_lin_vel_b = ObsTerm(func=mdp.base_lin_vel)
+        base_ang_vel_b = ObsTerm(func=mdp.base_ang_vel, scale=0.25)
         # the roll angle will change from -pi to pi (angle wrapping), not good for training
         # base_yaw_pitch_roll = ObsTerm(func=mdp.base_eulers)
         root_quat = ObsTerm(func=mdp.root_quat_w)
@@ -187,13 +187,13 @@ class RewardsCfg:
     # action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01*0.5)
 
     # penalty for moving in y direction
-    off_track = RewTerm(func=mdp.off_track, weight=-1.0)
+    cost_off_track = RewTerm(func=mdp.off_track, weight=-1.0)
 
     # penalty for moving away from beam (avoid jumping)
     # jump_up = RewTerm(func=mdp.jump_up, weight=-1.0, params={"slope": _beam_angle})
 
     # penalty for left/right feet crossing
-    feet_cross = RewTerm(func=mdp.feet_cross, weight=-1.0)
+    cost_feet_cross = RewTerm(func=mdp.feet_cross, weight=-1.0)
 
     # some energy related penalties
     # lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)

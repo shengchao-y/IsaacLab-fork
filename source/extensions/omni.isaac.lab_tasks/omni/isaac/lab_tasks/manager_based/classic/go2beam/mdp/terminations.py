@@ -95,18 +95,18 @@ def feet_off(
     RL_foot_z = asset.data.body_pos_w[:,asset.data.body_names.index("RL_foot"),2]
     RR_foot_z = asset.data.body_pos_w[:,asset.data.body_names.index("RR_foot"),2]
     
-    # result = (FL_foot_z < FL_foot_beam_z+0.05) | (FR_foot_z < FR_foot_beam_z+0.05) \
-    #     | (RL_foot_z < RL_foot_beam_z+0.05) | (RR_foot_z < RR_foot_beam_z+0.05)
+    result = (FL_foot_z < FL_foot_beam_z+0.05) | (FR_foot_z < FR_foot_beam_z+0.05) \
+        | (RL_foot_z < RL_foot_beam_z+0.05) | (RR_foot_z < RR_foot_beam_z+0.05)
     
     FL_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("FL_foot"),1] - env.scene.env_origins[:,1]
-    result_FL = (FL_foot_y < -(FL_foot_z-FL_foot_beam_z)) | (FL_foot_y > FL_foot_z-FL_foot_beam_z)
+    result_FL = (FL_foot_y < -(FL_foot_z-FL_foot_beam_z+0.05)) | (FL_foot_y > FL_foot_z-FL_foot_beam_z+0.05)
     FR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("FR_foot"),1] - env.scene.env_origins[:,1]
-    result_FR =(FR_foot_y < -(FR_foot_z-FR_foot_beam_z)) | (FR_foot_y > FR_foot_z-FR_foot_beam_z)
+    result_FR =(FR_foot_y < -(FR_foot_z-FR_foot_beam_z+0.05)) | (FR_foot_y > FR_foot_z-FR_foot_beam_z+0.05)
 
     RL_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RL_foot"),1] - env.scene.env_origins[:,1]
-    result_RL = (RL_foot_y < -(RL_foot_z-RL_foot_beam_z)) | (RL_foot_y > RL_foot_z-RL_foot_beam_z)
+    result_RL = (RL_foot_y < -(RL_foot_z-RL_foot_beam_z+0.05)) | (RL_foot_y > RL_foot_z-RL_foot_beam_z+0.05)
     RR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RR_foot"),1] - env.scene.env_origins[:,1]
-    result_RR =(RR_foot_y < -(RR_foot_z-RR_foot_beam_z)) | (RR_foot_y > RR_foot_z-RR_foot_beam_z)
+    result_RR =(RR_foot_y < -(RR_foot_z-RR_foot_beam_z+0.05)) | (RR_foot_y > RR_foot_z-RR_foot_beam_z+0.05)
 
-    return  result_FL | result_FR | result_RL | result_RR
+    return  result | result_FL | result_FR | result_RL | result_RR
 

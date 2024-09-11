@@ -150,10 +150,10 @@ class RewardsCfg:
     cost_action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
 
     # penalty for moving in y direction
-    off_track = RewTerm(func=mdp.off_track, weight=-1.0)
+    cost_off_track = RewTerm(func=mdp.off_track, weight=-1.0)
 
     # penalty for moving in z direction (avoid jumping)
-    jump_up = RewTerm(func=mdp.jump_up, weight=-1.0)
+    cost_jump_up = RewTerm(func=mdp.jump_up, weight=-1.0)
 
 
 
