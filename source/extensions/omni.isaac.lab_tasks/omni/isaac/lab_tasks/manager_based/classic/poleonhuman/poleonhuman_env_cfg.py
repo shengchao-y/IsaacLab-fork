@@ -27,7 +27,7 @@ import omni.isaac.lab_tasks.manager_based.classic.poleonhuman.mdp as mdp
 ##
 
 _pole0_init_pose = (0.37, -0.17, 2.5)
-_pole1_init_pose = (0.37, 0.17, 2.5)
+# _pole1_init_pose = (0.37, 0.17, 2.5)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -99,16 +99,6 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
 
-    # pole
-    # pole = DynamicCylinder(
-    #         # prim_path="{ENV_REGEX_NS}/Pole", 
-    #         prim_path="/World/envs/env_0/Pole", 
-    #         translation=np.array([0.37, 0.17, 2.5]), 
-    #         radius = 0.1,
-    #         height = 2.0,
-    #         color=np.array([0.9, 0.6, 0.2]),
-    #         mass=0.2,
-    #     )
     pole0 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Pole0",
         spawn=sim_utils.CylinderCfg(
@@ -177,8 +167,8 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for the policy."""
         # pole
-        pole0_position_rel = ObsTerm(func=mdp.object_pose_rel_b, params={"object_name": "pole0"})
-        pole0_lin_vel = ObsTerm(func=mdp.object_lin_vel_rel_b, params={"object_name": "pole0"})
+        pole0_position_rel_b = ObsTerm(func=mdp.object_pose_rel_b, params={"object_name": "pole0"})
+        pole0_lin_vel_b = ObsTerm(func=mdp.object_lin_vel_rel_b, params={"object_name": "pole0"})
         pole0_ang_vel = ObsTerm(func=mdp.object_ang_vel, params={"object_name": "pole0"})
         pole0_quat = ObsTerm(func=mdp.object_quat, params={"object_name": "pole0"})
         # pole1_position_rel = ObsTerm(func=mdp.object_pose_rel, params={"object_name": "pole1"})
@@ -188,8 +178,8 @@ class ObservationsCfg:
 
         # robot non-joints
         base_pos = ObsTerm(func=mdp.root_pos_w)
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.25)
+        base_lin_vel_b = ObsTerm(func=mdp.base_lin_vel)
+        base_ang_vel_b = ObsTerm(func=mdp.base_ang_vel, scale=0.25)
         # the roll angle will change from -pi to pi (angle wrapping) in poleonhuman, not good for training
         # base_yaw_pitch_roll = ObsTerm(func=mdp.base_eulers)
         root_quat = ObsTerm(func=mdp.root_quat_w)
@@ -197,7 +187,7 @@ class ObservationsCfg:
         feet_body_forces = ObsTerm(
             func=mdp.body_incoming_wrench,
             scale=0.01,
-            params={"asset_cfg": SceneEntityCfg("robot", body_names=["left_foot", "right_foot", "left_hand", "right_hand"])},
+            params={"asset_cfg": SceneEntityCfg("robot", body_names=["left_foot", "right_foot", "right_hand"])}, #, "left_hand"
         )
 
         # joints
@@ -249,19 +239,15 @@ class EventCfg:
 class RewardsCfg:
     """Reward terms for the MDP."""
 
-    # (1) Reward for target pose tracking
-    # pole0_target_tracking = RewTerm(func=mdp.pole_target_tracking, weight=1.0, params={"object_name": "pole0", "target_pos": _pole0_init_pose})
-    # pole1_target_tracking = RewTerm(func=mdp.pole_target_tracking, weight=1.0, params={"object_name": "pole1", "target_pos": _pole1_init_pose})
-    # Reward for moving poles in x direction
-    pole0_moving = RewTerm(func=mdp.pole_moving, weight=1.0, params={"object_name": "pole0", "target_vel": 0.5})
-    # pole1_moving = RewTerm(func=mdp.pole_moving, weight=1.0, params={"object_name": "pole1"})
-    # progress = RewTerm(func=mdp.progress_reward, weight=1.0, params={"target_pos": (1000.0, 0.0, 0.0)})
+    # (1) Reward for moving poles in x direction
+    rew_pole0_moving = RewTerm(func=mdp.forward_speed_obj, weight=1.0, params={"object_name": "pole0", "target_vel": 0.5})
     # (2) Stay alive bonus
-    alive = RewTerm(func=mdp.is_alive, weight=2.0)
+    rew_alive = RewTerm(func=mdp.is_alive, weight=1.0)
+
     # (5) Penalty for large action commands
-    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
+    cost_action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
     # (6) Penalty for energy consumption
-    energy = RewTerm(
+    cost_energy = RewTerm(
         func=mdp.power_consumption,
         weight=-0.05,
         params={
@@ -279,7 +265,7 @@ class RewardsCfg:
         },
     )
     # (7) Penalty for reaching close to joint limits
-    joint_limits = RewTerm(
+    cost_joint_limits = RewTerm(
         func=mdp.joint_limits_penalty_ratio,
         weight=-0.25,
         params={
@@ -299,7 +285,7 @@ class RewardsCfg:
     )
 
     # penalty for moving in y direction
-    pole0_off_track = RewTerm(func=mdp.object_off_track, weight=-1.0, params={"object_name": "pole0"})
+    cost_pole0_off_track = RewTerm(func=mdp.object_off_track, weight=-1.0, params={"object_name": "pole0"})
     # pole1_off_track = RewTerm(func=mdp.object_off_track, weight=-1.0, params={"object_name": "pole1"})
 
 
@@ -318,6 +304,8 @@ class TerminationsCfg:
     #                                                        "minimum_height": 2.0,
     #                                                        "maximum_height": 2.6,
     #                                                        "min_z_proj": 0.98})
+    # (3) Terminate if the right hand is away from pole0
+    pole0_off_hand = DoneTerm(func=mdp.pole0_off_hand, params={"dist_threshold": 0.1})
 
 
 @configclass

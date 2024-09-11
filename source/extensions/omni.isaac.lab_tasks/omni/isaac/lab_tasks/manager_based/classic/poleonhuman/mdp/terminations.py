@@ -29,3 +29,17 @@ def bad_object_pose(
     obj_up_vec = math_utils.quat_rotate(obj.data.root_quat_w, -obj.data.GRAVITY_VEC_W)
     return torch.logical_or(torch.logical_or(obj.data.root_pos_w[:,2] < minimum_height, obj.data.root_pos_w[:,2] > maximum_height),
                             obj_up_vec[:, 2] < min_z_proj)
+
+def pole0_off_hand(
+    env: ManagerBasedEnv, dist_threshold: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Terminate when right hand of away from pole0.
+
+    Note:
+        This is currently only supported for poleonhuman task
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    obj: RigidObject = env.scene["pole0"]
+    pole0_buttom_pos = obj.data.root_pos_w + math_utils.quat_rotate(obj.data.root_quat_w, obj.data.GRAVITY_VEC_W)
+    pole0_bottom2hand = pole0_buttom_pos - asset.data.body_pos_w[:, asset.data.body_names.index("right_hand"), :]
+    return (torch.norm(pole0_bottom2hand[:,:2], dim=-1)>dist_threshold) | (pole0_bottom2hand[:,2]<-dist_threshold)
