@@ -143,7 +143,7 @@ def forward_speed(
 ) -> torch.Tensor:
     """reward for going forward."""
     asset: Articulation = env.scene[asset_cfg.name]
-    vel_along_beam = asset.data.root_vel_w[:,2]*math.sin(slope) - asset.data.root_vel_w[:,0]*math.cos(slope)
+    vel_along_beam = -asset.data.root_vel_w[:,2]*math.sin(slope) + asset.data.root_vel_w[:,0]*math.cos(slope)
     result = vel_along_beam / target_vel
     result[result>1.0] = 1.0
     return result
