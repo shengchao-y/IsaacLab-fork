@@ -43,7 +43,8 @@ class MySceneCfg(InteractiveSceneCfg):
     )
 
     # robot
-    robot = G1_CFG.replace(prim_path="{ENV_REGEX_NS}/robot",)
+    robot = G1_CFG.replace(prim_path="{ENV_REGEX_NS}/robot",
+                           spawn=G1_CFG.spawn.replace(articulation_props=G1_CFG.spawn.articulation_props.replace(enabled_self_collisions=True)),)
 
     # lights
     light = AssetBaseCfg(
@@ -69,29 +70,7 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    # TODO: it seems this is not used any where. Figure out what this is about.
-    joint_effort = mdp.JointEffortActionCfg(
-        asset_name="robot",
-        joint_names=[".*"],
-        scale={
-            ".*_hip_yaw_joint": 88.0,
-            ".*_hip_roll_joint": 88.0,
-            ".*_hip_pitch_joint": 88.0,
-            ".*_knee_joint": 139.0,
-            "torso_joint": 88.0,
-            ".*_ankle_pitch_joint": 40.0, 
-            ".*_ankle_roll_joint": 40.0,
-            ".*_shoulder_.*": 21.0,
-            ".*_elbow_.*": 21.0,
-            ".*_five_joint": 0.7,
-            ".*_three_joint": 0.7,
-            ".*_six_joint": 0.7,
-            ".*_four_joint": 0.7,
-            ".*_zero_joint": 0.7,
-            ".*_one_joint": 0.7,
-            ".*_two_joint": 0.7,
-        },
-    )
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
 
 
 @configclass
@@ -154,68 +133,28 @@ class RewardsCfg:
     rew_progress = RewTerm(func=mdp.forward_speed, weight=3.0)
     # (2) Stay alive bonus
     rew_alive = RewTerm(func=mdp.is_alive, weight=1.0)
-    # (3) Reward for not turning aside
-    rew_no_side_turn = RewTerm(func=mdp.noside_posture_bonus, weight=0.1, params={"threshold": 0.93})
+    # (3) Reward for maintaining desired orientation with less weight on pitch than roll and yaw
+    rew_orientation = RewTerm(func=mdp.keep_orientation, weight=1.0, 
+                              params={"target_quat": math_utils.quat_inv(torch.tensor((0.9659258, 0, 0.258819, 0))).unsqueeze(0)})
 
     # (5) Penalty for large action commands
-    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
-    # (6) Penalty for energy consumption
-    energy = RewTerm(
-        func=mdp.power_consumption,
-        weight=-0.05,
-        params={
-            "gear_ratio": {
-                ".*_hip_yaw_joint": 88.0,
-                ".*_hip_roll_joint": 88.0,
-                ".*_hip_pitch_joint": 88.0,
-                ".*_knee_joint": 139.0,
-                "torso_joint": 88.0,
-                ".*_ankle_pitch_joint": 40.0, 
-                ".*_ankle_roll_joint": 40.0,
-                ".*_shoulder_.*": 21.0,
-                ".*_elbow_.*": 21.0,
-                ".*_five_joint": 0.7,
-                ".*_three_joint": 0.7,
-                ".*_six_joint": 0.7,
-                ".*_four_joint": 0.7,
-                ".*_zero_joint": 0.7,
-                ".*_one_joint": 0.7,
-                ".*_two_joint": 0.7,
-            },
-        },
-    )
-    # (7) Penalty for reaching close to joint limits
-    joint_limits = RewTerm(
-        func=mdp.joint_limits_penalty_ratio,
-        weight=-0.25,
-        params={
-            "threshold": 0.98,
-            "gear_ratio": {
-                ".*_hip_yaw_joint": 88.0,
-                ".*_hip_roll_joint": 88.0,
-                ".*_hip_pitch_joint": 88.0,
-                ".*_knee_joint": 139.0,
-                "torso_joint": 88.0,
-                ".*_ankle_pitch_joint": 40.0, 
-                ".*_ankle_roll_joint": 40.0,
-                ".*_shoulder_.*": 21.0,
-                ".*_elbow_.*": 21.0,
-                ".*_five_joint": 0.7,
-                ".*_three_joint": 0.7,
-                ".*_six_joint": 0.7,
-                ".*_four_joint": 0.7,
-                ".*_zero_joint": 0.7,
-                ".*_one_joint": 0.7,
-                ".*_two_joint": 0.7,
-            },
-        },
-    )
+    # action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
+    
+    # lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
+    # ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
+    # Penalty for large joint_torque
+    cost_dof_torque = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
+    # (6) Penalty for large joint_acc
+    cost_dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-8)
+
+    cost_action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
 
     # penalty for moving in y direction
     off_track = RewTerm(func=mdp.off_track, weight=-1.0)
 
-    # reward for heading forward
-    # heading_forward = RewTerm(func=mdp.heading_forward, weight=0.1)
+    # penalty for moving in z direction (avoid jumping)
+    jump_up = RewTerm(func=mdp.jump_up, weight=-1.0)
+
 
 
 @configclass
@@ -225,9 +164,9 @@ class TerminationsCfg:
     # (1) Terminate if the episode length is exceeded
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # (2) Terminate if the robot falls
-    torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.5})
-    torso_orientation = DoneTerm(func=mdp.bad_orientation_quat, params={"limit_angle_diff": math.pi/2,
-                                                                        "target_quat": math_utils.quat_inv(torch.tensor((1.0,0.0,0.0,0.0))).unsqueeze(0)} )
+    torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.6})
+    # torso_orientation = DoneTerm(func=mdp.bad_orientation_quat, params={"limit_angle_diff": math.pi/2,
+    #                                                                     "target_quat": math_utils.quat_inv(torch.tensor((1.0,0.0,0.0,0.0))).unsqueeze(0)} )
 
 
 @configclass
@@ -257,13 +196,15 @@ class G1runEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 2
-        self.episode_length_s = 16.0
+        self.decimation = 4
+        self.episode_length_s = 20.0
         # simulation settings
-        self.sim.dt = 1 / 120.0
+        self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
         self.sim.physx.bounce_threshold_velocity = 0.2
         # default friction material
+        self.sim.disable_contact_processing = True
+        self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physics_material.static_friction = 1.0
         self.sim.physics_material.dynamic_friction = 1.0
         self.sim.physics_material.restitution = 0.0
