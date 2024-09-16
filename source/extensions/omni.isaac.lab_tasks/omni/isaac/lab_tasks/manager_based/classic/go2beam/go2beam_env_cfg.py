@@ -36,6 +36,8 @@ _beam_length = 100
 # _beam_quat = (1.0, 0.0, 0.0, 0.0)
 _beam_angle = math.pi/6
 _beam_quat = (0.9659258, 0.0, -0.258819, 0.0)
+# _beam_angle = math.pi/9
+# _beam_quat = (0.9848078, 0.0, -0.1736482, 0.0)
 ##
 _beam_x = _beam_length*math.cos(_beam_angle)/2
 _beam_z = 0.8+_beam_length*math.sin(_beam_angle)/2
@@ -184,22 +186,22 @@ class RewardsCfg:
     rew_orientation = RewTerm(func=mdp.keep_orientation, weight=1.0, params={"target_quat": math_utils.quat_inv(torch.tensor(_beam_quat)).unsqueeze(0)})
 
     # (5) Penalty for large action commands
-    # action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01*0.5)
+    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01*0.5)
 
     # penalty for moving in y direction
     cost_off_track = RewTerm(func=mdp.off_track, weight=-1.0)
 
     # penalty for moving away from beam (avoid jumping)
-    # jump_up = RewTerm(func=mdp.jump_up, weight=-1.0, params={"slope": _beam_angle})
+    jump_up = RewTerm(func=mdp.jump_up, weight=-1.0, params={"slope": _beam_angle})
 
     # penalty for left/right feet crossing
     cost_feet_cross = RewTerm(func=mdp.feet_cross, weight=-1.0)
 
     # some energy related penalties
     # lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    # dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-2.0e-4)
-    # dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
-    # action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    cost_dof_torque = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
+    cost_dof_acc = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-8)
+    cost_action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
 
     # Reward when the asset's feet are under the corresponding hips.
     # feet_under_hip = RewTerm(func=mdp.feet_under_hip, weight=0.25)
