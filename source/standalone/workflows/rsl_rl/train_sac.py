@@ -18,7 +18,7 @@ import cli_args  # isort: skip
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with RSL-RL.")
-parser.add_argument("--algorithm", type=str, default="ppo", help="Name of the algorithm to use.")
+parser.add_argument("--algorithm", type=str, default="sac", help="Name of the algorithm to use.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
 parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
@@ -67,7 +67,7 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-@hydra_task_config(args_cli.task, "rsl_rl_cfg_entry_point")
+@hydra_task_config(args_cli.task, "rsl_rl_sac_cfg_entry_point")
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg, agent_cfg: RslRlOnPolicyRunnerCfg | RslRlOffPolicyRunnerCfg):
     """Train with RSL-RL agent."""
     # override configurations with non-hydra CLI arguments

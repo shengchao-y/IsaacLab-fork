@@ -22,6 +22,7 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": g1run_env_cfg.G1runEnvCfg,
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:G1runPPORunnerCfg",
+        "rsl_rl_sac_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:G1runSACRunnerCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",

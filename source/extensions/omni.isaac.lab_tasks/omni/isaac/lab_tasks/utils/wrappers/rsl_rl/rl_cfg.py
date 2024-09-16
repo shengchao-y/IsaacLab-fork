@@ -147,3 +147,145 @@ class RslRlOnPolicyRunnerCfg:
 
     If regex expression, the latest (alphabetical order) matching file will be loaded.
     """
+
+@configclass
+class RslRlSacActorCriticCfg:
+    """Configuration for the PPO actor-critic networks."""
+
+    class_name: str = "SACActorCritic"
+    """The policy class name. Default is SACActorCritic."""
+
+    # init_noise_std: float = MISSING
+    # """The initial noise standard deviation for the policy."""
+
+    actor_hidden_dims: list[int] = MISSING
+    """The hidden dimensions of the actor network."""
+
+    critic_hidden_dims: list[int] = MISSING
+    """The hidden dimensions of the critic network."""
+
+    activation: str = MISSING
+    """The activation function for the actor and critic networks."""
+
+    use_layer_norm: bool = False
+    """Whether to use layer normalization."""
+
+    log_std_min: float = MISSING
+    """The minimum log standard deviation for the policy."""
+
+    log_std_max: float = MISSING
+    """The maximum log standard deviation for the policy."""
+
+
+@configclass
+class RslRlSacAlgorithmCfg:
+    """Configuration for the PPO algorithm."""
+
+    class_name: str = "SAC"
+    """The algorithm class name. Default is PPO."""
+
+    target_entropy: float = MISSING
+    """The target entropy for the policy."""
+
+    num_learning_epochs: int = MISSING
+    """The number of learning epochs per update."""
+
+    batch_size: int = MISSING
+    """The batch size for the policy training per update."""
+
+    actor_lr: float = MISSING
+    """The learning rate for the actor network."""
+
+    critic_lr: float = MISSING
+    """The learning rate for the critic network."""
+
+    alpha_lr: float = MISSING
+    """The learning rate for the temperature parameter."""
+
+    alpha: float = MISSING
+    """The init value of the temperature parameter."""
+
+    gamma: float = MISSING
+    """The discount factor."""
+
+    tau: float = MISSING
+    """The soft update coefficient."""
+
+    max_grad_norm: float = MISSING
+    """The maximum gradient norm."""
+
+    empirical_normalization: bool = MISSING
+    """Whether to use empirical normalization."""
+
+
+@configclass
+class RslRlOffPolicyRunnerCfg:
+    """Configuration of the runner for off-policy algorithms."""
+
+    seed: int = 42
+    """The seed for the experiment. Default is 42."""
+
+    device: str = "cuda:0"
+    """The device for the rl-agent. Default is cuda:0."""
+
+    num_steps_per_env: int = MISSING
+    """The number of steps per environment per update."""
+
+    capacity_per_env: int = MISSING
+    """The capacity of the replay buffer per environment."""
+
+    policy: RslRlSacActorCriticCfg = MISSING
+    """The policy configuration."""
+
+    algorithm: RslRlSacAlgorithmCfg = MISSING
+    """The algorithm configuration."""
+
+    ##
+    # Checkpointing parameters
+    ##
+
+    save_interval: int = MISSING
+    """The number of iterations between saves."""
+
+    experiment_name: str = MISSING
+    """The experiment name."""
+
+    run_name: str = ""
+    """The run name. Default is empty string.
+
+    The name of the run directory is typically the time-stamp at execution. If the run name is not empty,
+    then it is appended to the run directory's name, i.e. the logging directory's name will become
+    ``{time-stamp}_{run_name}``.
+    """
+
+    ##
+    # Logging parameters
+    ##
+
+    logger: Literal["tensorboard", "neptune", "wandb"] = "tensorboard"
+    """The logger to use. Default is tensorboard."""
+
+    neptune_project: str = "isaaclab"
+    """The neptune project name. Default is "isaaclab"."""
+
+    wandb_project: str = "isaaclab"
+    """The wandb project name. Default is "isaaclab"."""
+
+    ##
+    # Loading parameters
+    ##
+
+    resume: bool = False
+    """Whether to resume. Default is False."""
+
+    load_run: str = ".*"
+    """The run directory to load. Default is ".*" (all).
+
+    If regex expression, the latest (alphabetical order) matching run will be loaded.
+    """
+
+    load_checkpoint: str = "model_.*.pt"
+    """The checkpoint file to load. Default is ``"model_.*.pt"`` (all).
+
+    If regex expression, the latest (alphabetical order) matching file will be loaded.
+    """
