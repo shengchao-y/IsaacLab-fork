@@ -21,6 +21,9 @@ from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
 import numpy as np
 from omni.isaac.lab.assets import RigidObjectCfg
 import omni.isaac.lab_tasks.manager_based.classic.poleonhuman.mdp as mdp
+import omni.isaac.lab.utils.math as math_utils
+import torch
+import math
 
 ##
 # Scene definition
@@ -28,6 +31,7 @@ import omni.isaac.lab_tasks.manager_based.classic.poleonhuman.mdp as mdp
 
 _pole0_init_pose = (0.37, -0.17, 2.5)
 # _pole1_init_pose = (0.37, 0.17, 2.5)
+_robot_orientation = (1.0, 0, 0.0, 0)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -243,13 +247,16 @@ class RewardsCfg:
     rew_pole0_moving = RewTerm(func=mdp.forward_speed_obj, weight=1.0, params={"object_name": "pole0", "target_vel": 0.5})
     # (2) Stay alive bonus
     rew_alive = RewTerm(func=mdp.is_alive, weight=1.0)
+    # (3) Reward for maintaining desired orientation with less weight on pitch than roll and yaw
+    rew_orientation = RewTerm(func=mdp.keep_orientation, weight=1.0, 
+                              params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)})
 
     # (5) Penalty for large action commands
     cost_action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
     # (6) Penalty for energy consumption
     cost_energy = RewTerm(
         func=mdp.power_consumption,
-        weight=-0.05,
+        weight=-0.05*0.1,
         params={
             "gear_ratio": {
                 ".*_waist.*": 67.5,
@@ -267,7 +274,7 @@ class RewardsCfg:
     # (7) Penalty for reaching close to joint limits
     cost_joint_limits = RewTerm(
         func=mdp.joint_limits_penalty_ratio,
-        weight=-0.25,
+        weight=-0.25*0.5,
         params={
             "threshold": 0.98,
             "gear_ratio": {
