@@ -22,6 +22,9 @@ import numpy as np
 from omni.isaac.lab.assets import RigidObjectCfg
 import omni.isaac.lab_tasks.manager_based.classic.antonball.mdp as mdp
 from omni.isaac.lab_assets.ant import ANT_CFG  # isort: skip
+import omni.isaac.lab.utils.math as math_utils
+import torch
+import math
 
 ##
 # Scene definition
@@ -190,7 +193,11 @@ class RewardsCfg:
     # (1) Reward for moving poles in x direction
     rew_pole_moving = RewTerm(func=mdp.pole_moving, weight=1.0, params={"object_name": "pole", "target_vel": 1.0})
     # (2) Stay alive bonus
-    rew_alive = RewTerm(func=mdp.is_alive, weight=2.0)
+    rew_alive = RewTerm(func=mdp.is_alive, weight=1.0)
+    # (3) Reward for maintaining desired orientation with less weight on pitch than roll and yaw
+    rew_orientation = RewTerm(func=mdp.keep_orientation, weight=1.0, 
+                              params={"target_quat": math_utils.quat_inv(torch.tensor((1.0, 0, 0.0, 0))).unsqueeze(0)})
+
 
     # (5) Penalty for large action commands
     cost_action_l2 = RewTerm(func=mdp.action_l2, weight=-0.005)
@@ -215,6 +222,9 @@ class TerminationsCfg:
                                                            "minimum_height": 3.3,
                                                            "maximum_height": 3.8,
                                                            "min_z_proj": 0.98})
+    # (3) Terminate if the robot deviates too much from target orientation
+    torso_orientation = DoneTerm(func=mdp.bad_orientation_quat, params={"limit_angle_diff": math.pi/6,
+                                                                        "target_quat": math_utils.quat_inv(torch.tensor((1.0, 0, 0.0, 0))).unsqueeze(0)} )
 
 
 @configclass

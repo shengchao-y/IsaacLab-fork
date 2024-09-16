@@ -19,11 +19,11 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
 @configclass
 class PoleonhumanPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     rewards_expect = {
-        "pole0_moving": 1.0,
-        "alive": 2.0,
+        "rew_pole0_moving": 1.0,
+        # "rew_alive": 2.0,
     }
     num_steps_per_env = 32
-    max_iterations = 50000
+    max_iterations = 20000
     save_interval = 50
     experiment_name = "poleonhuman"
     empirical_normalization = False

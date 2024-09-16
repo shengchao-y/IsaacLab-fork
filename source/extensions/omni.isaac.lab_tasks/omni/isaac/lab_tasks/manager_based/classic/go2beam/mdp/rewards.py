@@ -143,7 +143,7 @@ def forward_speed(
 ) -> torch.Tensor:
     """reward for going forward."""
     asset: Articulation = env.scene[asset_cfg.name]
-    vel_along_beam = -asset.data.root_vel_w[:,2]*math.sin(slope) + asset.data.root_vel_w[:,0]*math.cos(slope)
+    vel_along_beam = asset.data.root_vel_w[:,2]*math.sin(slope) + asset.data.root_vel_w[:,0]*math.cos(slope)
     result = vel_along_beam / target_vel
     result[result>1.0] = 1.0
     return result
@@ -216,11 +216,13 @@ def feet_cross(
     FR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("FR_foot"),1]
     RL_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RL_foot"),1]
     RR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RR_foot"),1]
-    cross_front = FR_foot_y - FL_foot_y + 0.02
-    cross_rear = RR_foot_y - RL_foot_y + 0.02
-    cross_front[cross_front<0] = 0
-    cross_rear[cross_rear<0] = 0
-    return cross_front + cross_rear
+    cross_front = FR_foot_y - FL_foot_y + 0.05
+    cross_rear = RR_foot_y - RL_foot_y + 0.05
+    # cross_front[cross_front<0] = 0
+    # cross_rear[cross_rear<0] = 0
+    # print(f"feet_cross: {(cross_front>0) | (cross_rear>0)}")
+    # breakpoint()
+    return ((cross_front>0) | (cross_rear>0)).float()
 
 def feet_under_hip(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")

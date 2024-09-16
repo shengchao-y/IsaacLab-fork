@@ -14,6 +14,7 @@ from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
 
 from . import observations as obs
+from omni.isaac.core.utils.torch.rotations import normalize_angle
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
@@ -180,3 +181,14 @@ def object_off_track(
     """penalty for going off track."""
     obj: RigidObject = env.scene[object_name]
     return torch.abs(obj.data.root_vel_w[:, 1])
+
+def keep_orientation(
+    env: ManagerBasedRLEnv, target_quat: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """reward for keeping close to target orientation."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    quat_diff = math_utils.quat_mul(target_quat.to(env.device).repeat(env.num_envs, 1), 
+                                    asset.data.root_quat_w)
+    eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
+    eulers_diff[:,1] = eulers_diff[:,1] * 2 # do not need to keep pitch exactly
+    return torch.exp(-torch.norm(eulers_diff, dim=-1))
