@@ -34,10 +34,10 @@ _beam_length = 100
 ## Change together
 # _beam_angle = 0 #math.pi/18
 # _beam_quat = (1.0, 0.0, 0.0, 0.0)
-_beam_angle = math.pi/6
-_beam_quat = (0.9659258, 0.0, -0.258819, 0.0)
-# _beam_angle = math.pi/9
-# _beam_quat = (0.9848078, 0.0, -0.1736482, 0.0)
+# _beam_angle = math.pi/6
+# _beam_quat = (0.9659258, 0.0, -0.258819, 0.0)
+_beam_angle = math.pi/9
+_beam_quat = (0.9848078, 0.0, -0.1736482, 0.0)
 ##
 _beam_x = _beam_length*math.cos(_beam_angle)/2
 _beam_z = 0.8+_beam_length*math.sin(_beam_angle)/2
@@ -218,8 +218,6 @@ class TerminationsCfg:
     # (3) Terminate if the robot deviates too much from target orientation
     torso_orientation = DoneTerm(func=mdp.bad_orientation_quat, params={"limit_angle_diff": math.pi/6,
                                                                         "target_quat": math_utils.quat_inv(torch.tensor(_beam_quat)).unsqueeze(0)} )
-    # (4) Terminate if the robot left and right feet cross
-    # feet_cross = DoneTerm(func=mdp.feet_cross)
     # (5) Terminate if any foot is off the beam
     feet_off = DoneTerm(func=mdp.feet_off, params={"slope_func":slope_func})
 

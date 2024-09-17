@@ -24,7 +24,7 @@ class Go2beamPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         # "rew_orientation": 1.0,
     }
     num_steps_per_env = 32
-    max_iterations = 15000
+    max_iterations = 8000
     save_interval = 50
     experiment_name = "go2beam"
     empirical_normalization = False

@@ -216,8 +216,8 @@ def feet_cross(
     FR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("FR_foot"),1]
     RL_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RL_foot"),1]
     RR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RR_foot"),1]
-    cross_front = FR_foot_y - FL_foot_y + 0.05
-    cross_rear = RR_foot_y - RL_foot_y + 0.05
+    cross_front = FR_foot_y - FL_foot_y - 0.05
+    cross_rear = RR_foot_y - RL_foot_y - 0.05
     # cross_front[cross_front<0] = 0
     # cross_rear[cross_rear<0] = 0
     # print(f"feet_cross: {(cross_front>0) | (cross_rear>0)}")

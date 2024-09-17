@@ -62,19 +62,6 @@ def bad_orientation_quat(
     eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
     return torch.norm(eulers_diff, dim=-1) > limit_angle_diff
 
-def feet_cross(
-    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-) -> torch.Tensor:
-    """Terminate when the asset's left and right feet cross.
-    """
-    # extract the used quantities (to enable type-hinting)
-    asset: Articulation = env.scene[asset_cfg.name]
-    FL_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("FL_foot"),1]
-    FR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("FR_foot"),1]
-    RL_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RL_foot"),1]
-    RR_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index("RR_foot"),1]
-    return (FL_foot_y-FR_foot_y < -0.05) | (RL_foot_y-RR_foot_y < -0.05)
-
 def feet_off(
     env: ManagerBasedRLEnv, slope_func: func, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
