@@ -143,7 +143,7 @@ def forward_speed(
     """reward for going forward."""
     asset: Articulation = env.scene[asset_cfg.name]
     result = asset.data.root_vel_w[:, 0] / target_vel
-    result[result>1.6] = 1.6
+    result[result>1.0] = 1.0
     return result
 
 def noside_posture_bonus(
@@ -173,11 +173,13 @@ def heading_forward(
 def jump_up(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
-    """penalty for jumping up."""
+    """penalty for jumping up. Using feet is more direct than using torso."""
     asset: Articulation = env.scene[asset_cfg.name]
-    result = asset.data.root_vel_w[:, 2].clone()
-    result[result<0] = 0
-    return result
+    vel_left_foot_z = asset.data.body_lin_vel_w[:,asset.data.body_names.index('left_foot'),2].clone()
+    vel_right_foot_z = asset.data.body_lin_vel_w[:,asset.data.body_names.index('right_foot'),2].clone()
+    vel_left_foot_z[vel_left_foot_z<0] = 0
+    vel_right_foot_z[vel_right_foot_z<0] = 0
+    return vel_left_foot_z**2 + vel_right_foot_z**2
 
 def keep_orientation(
     env: ManagerBasedRLEnv, target_quat: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -189,3 +191,31 @@ def keep_orientation(
     eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
     eulers_diff[:,1] = eulers_diff[:,1] * 2 # do not need to keep pitch exactly
     return torch.exp(-torch.norm(eulers_diff, dim=-1))
+
+# def keep_orientation_feet(
+#     env: ManagerBasedRLEnv, target_quat: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+# ) -> torch.Tensor:
+#     """Reward for maintaining desired feet orientation with less weight on pitch than roll and yaw
+#     """
+#     # extract the used quantities (to enable type-hinting)
+#     asset: Articulation = env.scene[asset_cfg.name]
+#     quat_left_foot = asset.data.body_quat_w[:,asset.data.body_names.index('left_foot')]
+#     quat_right_foot = asset.data.body_quat_w[:,asset.data.body_names.index('right_foot')]
+#     quat_diff_left = math_utils.quat_mul(target_quat.to(env.device).repeat(env.num_envs, 1), quat_left_foot)
+#     quat_diff_right = math_utils.quat_mul(target_quat.to(env.device).repeat(env.num_envs, 1), quat_right_foot)
+#     eulers_diff_left = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff_left), dim=1))
+#     eulers_diff_left[:,1] = eulers_diff_left[:,1] * 2 # do not need to keep pitch exactly
+#     eulers_diff_right = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff_right), dim=1))
+#     eulers_diff_right[:,1] = eulers_diff_right[:,1] * 2 # do not need to keep pitch exactly
+#     return (torch.exp(-torch.norm(eulers_diff_left, dim=-1)) + torch.exp(-torch.norm(eulers_diff_right, dim=-1)))/2
+
+# def align_feet(
+#     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+# ) -> torch.Tensor:
+#     """Reward for keeping feet aligned in y direction
+#     """
+#     # extract the used quantities (to enable type-hinting)
+#     asset: Articulation = env.scene[asset_cfg.name]
+#     left_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index('left_foot'),1]
+#     right_foot_y = asset.data.body_pos_w[:,asset.data.body_names.index('right_foot'),1]
+#     return torch.exp(-torch.abs(left_foot_y-right_foot_y) * 2)

@@ -22,11 +22,13 @@ import omni.isaac.lab_tasks.manager_based.classic.humanrope.mdp as mdp
 from omni.isaac.lab.assets import RigidObjectCfg
 import omni.isaac.lab.utils.math as math_utils
 import torch
+import math
 
 ##
 # Scene definition
 ##
-
+_robot_orientation = (0.7071068, 0, 0, 0.7071068)
+# _robot_orientation = (0.9914449, 0, 0.1305262, 0)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -62,6 +64,7 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 2.34),
+            rot=_robot_orientation,
             joint_pos={".*": 0.0},
         ),
         actuators={
@@ -208,7 +211,12 @@ class RewardsCfg:
     rew_alive = RewTerm(func=mdp.is_alive, weight=1.0)
     # (3) Reward for maintaining desired orientation with less weight on pitch than roll and yaw
     rew_orientation = RewTerm(func=mdp.keep_orientation, weight=1.0, 
-                              params={"target_quat": math_utils.quat_inv(torch.tensor((0.9914449, 0, 0.1305262, 0))).unsqueeze(0)})
+                              params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)})
+    # (4) Reward for maintaining desired feet orientation with less weight on pitch than roll and yaw
+    # rew_orientation_feet = RewTerm(func=mdp.keep_orientation_feet, weight=0.5, 
+    #                           params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)})
+    # Reward for keeping feet aligned in y direction
+    # rew_feet_align = RewTerm(func=mdp.align_feet, weight=0.1)
 
     # (5) Penalty for large action commands
     cost_action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
@@ -264,7 +272,15 @@ class TerminationsCfg:
     # (1) Terminate if the episode length is exceeded
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # (2) Terminate if the robot falls
-    torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.8+0.8})
+    torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.85+0.9})
+    # (3) Terminate if the robot deviates too much from target orientation
+    torso_orientation = DoneTerm(func=mdp.bad_orientation_quat, params={"limit_angle_diff": math.pi/6,
+                                                                        "target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)} )
+    # (4) Terminate if the feet deviate too much from target orientation
+    feet_orientation = DoneTerm(func=mdp.bad_orientation_quat_feet, params={"limit_angle_diff": math.pi/2,
+                                                                        "target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)} )
+    # (5) Terminate if the feet are off
+    feet_off = DoneTerm(func=mdp.feet_off, params={"minimum_height": 0.86})
 
 
 @configclass
