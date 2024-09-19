@@ -86,8 +86,8 @@ class HumandribbleEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/ball",
         spawn=sim_utils.SphereCfg(
             radius=0.11,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(linear_damping=0.4,),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(linear_damping=0.8,),
+            mass_props=sim_utils.MassPropertiesCfg(density=0.08),
             collision_props=sim_utils.CollisionPropertiesCfg(),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.3, 0.6), metallic=0.2),
         ),
@@ -99,6 +99,7 @@ class HumandribbleEnvCfg(DirectRLEnvCfg):
     actions_cost_scale: float = 0.01
     alive_reward_scale: float = 0.4
     dof_vel_scale: float = 0.1
+    joints_at_limit_cost_scale: float = 0.25
 
     death_cost: float = -1.0
     termination_height: float = 0.6
@@ -171,9 +172,7 @@ class HumandribbleEnv(LocomotionEnv):
         """ change goal direction of envs_ids
         """
         num_resets = len(env_ids)
-        direction_angles_delta = (torch.rand(num_resets, dtype=torch.float32, device=self.device)*2-1) * torch.pi / 6 # [-pi/6, pi/6]
-        probs = torch.ones_like(direction_angles_delta) * 0.3
-        direction_angles_delta[torch.bernoulli(probs).bool()] = 0.
+        direction_angles_delta = (torch.rand(num_resets, dtype=torch.float32, device=self.device)*2-1) * torch.pi / 4 # [-pi/6, pi/6]
         self.direction_angles[env_ids] = normalize_angle(self.direction_angles[env_ids]+direction_angles_delta)
         self.direction_quats = quat_from_euler_xyz(torch.zeros_like(self.basis_vec0[:,0]), torch.zeros_like(self.basis_vec0[:,0]), 
                                                    self.direction_angles)
@@ -242,8 +241,17 @@ class HumandribbleEnv(LocomotionEnv):
         # reward for keeping ball velocity at 1.5m/s
         ball_vel_lin_local = quat_rotate_inverse(self.direction_quats, self.ball.data.root_lin_vel_w)
         rew_ball_vel = torch.exp(-torch.abs(ball_vel_lin_local[:,0] - 1.5)/0.25) * 2.0
+        rew_ball_vel = ball_vel_lin_local[:,0].clone() / 3.5
+        rew_ball_vel[rew_ball_vel>1.0] = 1.0
+        rew_ball_vel *= 2.0
 
-        # reward for keeping close to the ball
+        # reward for keeping certain distance to the ball
+        # rew_ball_dist = torch.exp(-0.8*self.ball_dist**2) * 0.2
+        # rew_ball_dist = self.ball_dist.clone()
+        # rew_ball_dist[self.ball_dist<0.3] = torch.exp((self.ball_dist-0.3)*6)[self.ball_dist<0.3]
+        # rew_ball_dist[self.ball_dist>=0.3] = torch.exp(-0.8*(self.ball_dist-0.3)**2)[self.ball_dist>=0.3]
+        # rew_ball_dist = rew_ball_dist * self.ball_angle_cos * 0.2
+        # rew_ball_dist = torch.exp(-torch.abs(self.ball_dist-0.25)*3) * self.ball_angle_cos * 0.2
         rew_ball_dist = torch.exp(-self.ball_dist) * 0.2
 
         # penalty for ball off track
@@ -253,14 +261,16 @@ class HumandribbleEnv(LocomotionEnv):
         # penalty for torso not heading target direction
         # ************************************ self.torso_rot_local=[1,0,0,0]
         torso_heading_vec = get_basis_vector(self.torso_rot_local, self.basis_vec0)
-        cost_orient = torch.abs(torso_heading_vec[:,1]) * 1.0
+        cost_orient = torch.norm(torso_heading_vec[:,1:], dim=-1) * 1.0
 
         # energy penalty for movement
         actions_cost = torch.sum(self.actions ** 2, dim=-1)
         electricity_cost = torch.sum(torch.abs(self.actions * self.dof_vel) * self.motor_effort_ratio.unsqueeze(0), dim=-1)
 
         # dof at limit cost
-        dof_at_limit_cost = torch.sum(self.dof_pos_scaled > 0.98, dim=-1)
+        scaled_cost = self.cfg.joints_at_limit_cost_scale * (torch.abs(self.dof_pos_scaled) - 0.98) / 0.02
+        dof_at_limit_cost = torch.sum(
+            (torch.abs(self.dof_pos_scaled) > 0.98) * scaled_cost * self.motor_effort_ratio.unsqueeze(0), dim=-1)
 
         rewards = {
             "rew_ball_vel":     rew_ball_vel * self.step_dt,

@@ -23,7 +23,7 @@ class AntonballPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         # "rew_alive": 2.0,
     }
     num_steps_per_env = 32
-    max_iterations = 10000
+    max_iterations = 6000
     save_interval = 50
     experiment_name = "antonball"
     empirical_normalization = False
