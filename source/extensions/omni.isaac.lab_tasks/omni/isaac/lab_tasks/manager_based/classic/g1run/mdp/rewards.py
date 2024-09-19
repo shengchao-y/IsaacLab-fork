@@ -139,13 +139,11 @@ class power_consumption(ManagerTermBase):
         return torch.sum(torch.abs(env.action_manager.action * asset.data.joint_vel * self.gear_ratio_scaled), dim=-1)
 
 def forward_speed(
-    env: ManagerBasedRLEnv, target_vel: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """reward for going forward."""
     asset: Articulation = env.scene[asset_cfg.name]
-    result = asset.data.root_vel_w[:, 0] / target_vel
-    result[result>1.6] = 1.6
-    return result
+    return asset.data.root_vel_w[:, 0]
 
 def noside_posture_bonus(
     env: ManagerBasedRLEnv, threshold: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")

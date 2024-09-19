@@ -245,13 +245,11 @@ class HumandribbleEnv(LocomotionEnv):
         rew_ball_vel[rew_ball_vel>1.0] = 1.0
         rew_ball_vel *= 2.0
 
-        # reward for keeping certain distance to the ball
-        # rew_ball_dist = torch.exp(-0.8*self.ball_dist**2) * 0.2
+        # reward for keeping close to the ball
         # rew_ball_dist = self.ball_dist.clone()
         # rew_ball_dist[self.ball_dist<0.3] = torch.exp((self.ball_dist-0.3)*6)[self.ball_dist<0.3]
         # rew_ball_dist[self.ball_dist>=0.3] = torch.exp(-0.8*(self.ball_dist-0.3)**2)[self.ball_dist>=0.3]
         # rew_ball_dist = rew_ball_dist * self.ball_angle_cos * 0.2
-        # rew_ball_dist = torch.exp(-torch.abs(self.ball_dist-0.25)*3) * self.ball_angle_cos * 0.2
         rew_ball_dist = torch.exp(-self.ball_dist) * 0.2
 
         # penalty for ball off track

@@ -22,8 +22,9 @@ class G1runPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         "rew_progress": 3.0,
         # "rew_alive": 1.0,
     }
+    gage_init_std = 0.0
     num_steps_per_env = 32
-    max_iterations = 50000
+    max_iterations = 12000
     save_interval = 50
     experiment_name = "g1run"
     empirical_normalization = False
