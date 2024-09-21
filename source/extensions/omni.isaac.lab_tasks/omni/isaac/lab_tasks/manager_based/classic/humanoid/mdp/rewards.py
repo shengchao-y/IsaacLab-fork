@@ -141,9 +141,7 @@ def forward_speed(
 ) -> torch.Tensor:
     """reward for going forward."""
     asset: Articulation = env.scene[asset_cfg.name]
-    result = asset.data.root_vel_w[:, 0] / 6.0
-    result[result>1.6] = 1.6
-    return result
+    return asset.data.root_vel_w[:, 0]
 
 def noside_posture_bonus(
     env: ManagerBasedRLEnv, threshold: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")

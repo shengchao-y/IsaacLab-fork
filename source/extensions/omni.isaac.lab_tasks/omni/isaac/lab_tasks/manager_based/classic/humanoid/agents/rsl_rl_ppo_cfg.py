@@ -19,11 +19,12 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
 @configclass
 class HumanoidPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     rewards_expect = {
-        "progress": 3.0,
-        "alive": 1.0,
+        "rew_progress": 3.0,
+        # "cost_energy": [-0.4, -0.3],
     }
+    gage_init_std = 0.0
     num_steps_per_env = 32
-    max_iterations = 50000
+    max_iterations = 6000
     save_interval = 50
     experiment_name = "humanoid"
     empirical_normalization = False
