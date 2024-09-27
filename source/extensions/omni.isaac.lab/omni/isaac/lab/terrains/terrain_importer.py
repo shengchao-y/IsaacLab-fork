@@ -21,6 +21,8 @@ from omni.isaac.lab.utils.warp import convert_to_warp_mesh
 from .terrain_generator import TerrainGenerator
 from .trimesh.utils import make_plane
 from .utils import create_prim_from_mesh
+from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
+
 
 if TYPE_CHECKING:
     from .terrain_importer_cfg import TerrainImporterCfg
@@ -196,7 +198,10 @@ class TerrainImporter:
         self.warp_meshes[key] = convert_to_warp_mesh(mesh.vertices, mesh.faces, device=device)
 
         # get the mesh
-        ground_plane_cfg = sim_utils.GroundPlaneCfg(physics_material=self.cfg.physics_material, size=size)
+        # ground_plane_cfg = sim_utils.GroundPlaneCfg(physics_material=self.cfg.physics_material, size=size)
+        ground_plane_cfg = sim_utils.GroundPlaneCfg(physics_material=self.cfg.physics_material, size=size,
+                                                    usd_path=f"{ISAAC_NUCLEUS_DIR}/Environments/Grid/gridroom_curved.usd")
+        
         ground_plane_cfg.func(self.cfg.prim_path, ground_plane_cfg)
 
     def import_mesh(self, key: str, mesh: trimesh.Trimesh):
