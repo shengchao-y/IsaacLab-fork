@@ -20,6 +20,7 @@ class HumandribblePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     rewards_expect = {
         "rew_ball_vel": 2.0,
     }
+    gage_init_std = 0.0
     num_steps_per_env = 32
     max_iterations = 10000
     save_interval = 50
