@@ -53,10 +53,10 @@ class HumanoidPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class HumanoidSACRunnerCfg(RslRlOffPolicyRunnerCfg):
     rewards_expect = {
         "progress": 3.0,
-        "alive": 1.0,
+        # "alive": 1.0,
     }
-    num_steps_per_env = 5
-    max_iterations = 50000
+    num_steps_per_env = 16
+    max_iterations = 12000
     save_interval = 50
     experiment_name = "humanoid"
     capacity_per_env = 300

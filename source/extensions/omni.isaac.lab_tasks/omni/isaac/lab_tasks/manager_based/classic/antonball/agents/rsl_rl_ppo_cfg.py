@@ -54,8 +54,8 @@ class AntonballSACRunnerCfg(RslRlOffPolicyRunnerCfg):
         "rew_pole_moving": 1.0,
         # "rew_alive": 2.0,
     }
-    num_steps_per_env = 5
-    max_iterations = 50000
+    num_steps_per_env = 32
+    max_iterations = 6000
     save_interval = 50
     experiment_name = "antonball"
     capacity_per_env = 300
@@ -70,11 +70,11 @@ class AntonballSACRunnerCfg(RslRlOffPolicyRunnerCfg):
     algorithm = RslRlSacAlgorithmCfg(
         alpha=1.0,
         num_learning_epochs=5,
-        critic_lr=3.0e-4,
-        actor_lr=3.0e-4,
-        alpha_lr=3.0e-4,
+        critic_lr=5.0e-4,
+        actor_lr=5.0e-4,
+        alpha_lr=5.0e-4,
         gamma=0.99,
-        batch_size=2048,
+        batch_size=8192,
         max_grad_norm=1.0,
         target_entropy=-10.0,
         tau=0.005,
