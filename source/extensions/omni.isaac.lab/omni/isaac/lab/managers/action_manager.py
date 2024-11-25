@@ -298,6 +298,16 @@ class ActionManager(ManagerBase):
         # check if action dimension is valid
         if self.total_action_dim != action.shape[1]:
             raise ValueError(f"Invalid action shape, expected: {self.total_action_dim}, received: {action.shape[1]}.")
+        
+        if hasattr(self.cfg, "joint_effort"):        
+            # ant and humanoid use ImplicitActuator and do not have torque limit in usd model.
+            # Therefore, there actions have to be clamped before given to the simulator
+            action = torch.clip(action, -1.0, 1.0)
+        elif hasattr(self.cfg, "joint_pos") or hasattr(self.cfg, "gripper_action"):
+            pass
+        else:
+            raise ValueError("Only joint_effort and joint_pos allowed in GAGE!")
+        
         # store the input actions
         self._prev_action[:] = self._action
         self._action[:] = action.to(self.device)
