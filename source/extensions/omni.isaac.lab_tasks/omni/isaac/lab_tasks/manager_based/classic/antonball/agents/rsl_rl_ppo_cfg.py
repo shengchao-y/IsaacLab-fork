@@ -22,6 +22,7 @@ class AntonballPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         "rew_pole_moving": 1.0,
         # "rew_alive": 2.0,
     }
+    gage_init_std = 0.0
     num_steps_per_env = 32
     max_iterations = 6000
     save_interval = 50

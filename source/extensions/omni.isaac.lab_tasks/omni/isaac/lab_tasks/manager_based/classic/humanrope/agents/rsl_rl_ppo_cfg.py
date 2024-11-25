@@ -20,6 +20,7 @@ class HumanropePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     rewards_expect = {
         "rew_progress": 1.0,
     }
+    gage_init_std = 0.0
     num_steps_per_env = 32
     max_iterations = 12000
     save_interval = 50
