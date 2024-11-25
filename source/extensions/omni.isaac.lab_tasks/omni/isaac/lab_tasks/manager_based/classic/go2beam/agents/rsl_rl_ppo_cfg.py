@@ -23,12 +23,14 @@ class Go2beamPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         # "rew_alive": 1.0,
         # "rew_orientation": 1.0,
     }
+    gage_init_std = 0.0
     num_steps_per_env = 32
     max_iterations = 8000
     save_interval = 50
     experiment_name = "go2beam"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
+        class_name="ActorCritic_RND",
         init_noise_std=1.0,
         actor_hidden_dims=[400, 200, 100],
         critic_hidden_dims=[400, 200, 100],

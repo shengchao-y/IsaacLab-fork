@@ -27,6 +27,7 @@ class HumandribblePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     experiment_name = "humandribble_direct"
     empirical_normalization = True
     policy = RslRlPpoActorCriticCfg(
+        class_name="ActorCritic_RND",
         init_noise_std=1.0,
         actor_hidden_dims=[400, 200, 100],
         critic_hidden_dims=[400, 200, 100],

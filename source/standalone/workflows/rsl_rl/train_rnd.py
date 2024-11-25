@@ -106,7 +106,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg, agent_cfg: RslRlOnPolic
     # create runner from rsl-rl
     if args_cli.algorithm == "rnd":
         runner = OnPolicyRunner_RND(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
-    if args_cli.algorithm == "ppo":
+    elif args_cli.algorithm == "ppo":
         runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
     elif args_cli.algorithm == "sac":
         runner = OffPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
