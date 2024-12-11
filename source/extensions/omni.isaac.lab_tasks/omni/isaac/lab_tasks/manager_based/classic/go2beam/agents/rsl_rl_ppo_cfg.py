@@ -26,6 +26,9 @@ class Go2beamPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     gage_init_std = 0.0
     num_steps_per_env = 32
     max_iterations = 8000
+    ent_schedule_iterations = 0
+    ent_schedule_init = 0.8
+    ent_schedule_end = 0.01
     save_interval = 50
     experiment_name = "go2beam"
     empirical_normalization = False
