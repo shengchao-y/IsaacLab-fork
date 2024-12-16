@@ -161,16 +161,28 @@ def pole_target_tracking(
     assert False, "this is wrong, the env position env.scene.env_origins should be removed from every env."
     return torch.exp(-(obj.data.root_pos_w - torch.tensor(target_pos, device=obj.data.root_pos_w.device)).norm(dim=-1))
 
-def body_part_position_x(
+def body_part_near_x(
      env: ManagerBasedRLEnv, ladder_slope: func, body_part: str, distance_limit: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
-    """reward for stepping around ladder x position."""
+    """reward for positioning around ladder x position."""
     asset: Articulation = env.scene[asset_cfg.name]
     ind_body = asset.data.body_names.index(body_part)
     ladder_x = ladder_slope(asset.data.body_pos_w[:,ind_body,2])
     result = torch.abs(asset.data.body_pos_w[:,ind_body,0] - env.scene.env_origins[:,0] - ladder_x)
     result = -2.0 * result + 1.0 + 2.0*distance_limit
     result[result>1.0] = 1.0
+    return result
+
+def body_part_away_x(
+     env: ManagerBasedRLEnv, ladder_slope: func, body_part: str, distance_limit: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """reward for positioning away from ladder x position."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    ind_body = asset.data.body_names.index(body_part)
+    ladder_x = ladder_slope(asset.data.body_pos_w[:,ind_body,2])
+    result = torch.abs(asset.data.body_pos_w[:,ind_body,0] - env.scene.env_origins[:,0] - ladder_x)
+    # result = 2.0 * result + 1.0 - 2.0*distance_limit
+    result[result>distance_limit] = distance_limit
     return result
     
 def move_up_vel(
@@ -229,5 +241,17 @@ def keep_orientation(
     quat_diff = math_utils.quat_mul(target_quat.to(env.device).repeat(env.num_envs, 1), 
                                     asset.data.root_quat_w)
     eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
-    eulers_diff[:,1] = eulers_diff[:,1] * 2 # do not need to keep pitch exactly
+    eulers_diff[:,1] = eulers_diff[:,1] / 2 # do not need to keep pitch exactly
+    return torch.exp(-torch.norm(eulers_diff, dim=-1))
+
+def keep_orientation_body(
+    env: ManagerBasedRLEnv, target_quat: torch.Tensor, body_part: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """reward for keeping close to target orientation."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    quat_body = asset.data.body_quat_w[:,asset.data.body_names.index(body_part)]
+    quat_diff = math_utils.quat_mul(target_quat.to(env.device).repeat(env.num_envs, 1), 
+                                    quat_body)
+    eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
+    eulers_diff[:,1] = eulers_diff[:,1] / 2 # do not need to keep pitch exactly
     return torch.exp(-torch.norm(eulers_diff, dim=-1))

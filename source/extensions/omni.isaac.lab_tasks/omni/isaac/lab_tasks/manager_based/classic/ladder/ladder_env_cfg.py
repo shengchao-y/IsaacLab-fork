@@ -66,8 +66,19 @@ class MySceneCfg(InteractiveSceneCfg):
             copy_from_source=False,
         ),
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 1.34),
-            joint_pos={".*": 0.0},
+            pos=(0.0, 0.0, 1.3),
+            joint_pos={
+                    "lower_waist:0*": 0.0,
+                    "lower_waist:1": 0.5,
+                    ".*_upper_arm.*": 0.0,
+                    "pelvis": 0.0,
+                    ".*_lower_arm": 0.0,
+                    ".*_thigh:0": 0.0,
+                    ".*_thigh:1": -1.8,
+                    ".*_thigh:2": 0.0,
+                    ".*_shin": -1.6,
+                    ".*_foot.*": 0.0,
+                },
         ),
         actuators={
             "body": ImplicitActuatorCfg(
@@ -165,9 +176,10 @@ class ObservationsCfg:
         # step0_position_rel_x = ObsTerm(func=mdp.object_pose_rel_x, params={"object_name": "step0"})
         # relative height of next step above the torso
         step_above = ObsTerm(func=mdp.step_above, params={"height_steps": [step_pos[2] for step_pos in _step_poses]})
+        base_x_rel = ObsTerm(func=mdp.base_dist_x_ladder, params={"ladder_slope": ladder_slope})
 
         # robot non-joints
-        base_x = ObsTerm(func=mdp.base_pos_x)
+        # base_x = ObsTerm(func=mdp.base_pos_x)
         # base_z = ObsTerm(func=mdp.base_pos_z)
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.25)
@@ -222,24 +234,38 @@ class RewardsCfg:
     # (1) Reward for moving upward at defined velocity
     progress = RewTerm(func=mdp.move_up_vel, weight=2.0, params={"target_vel": 0.2})
     # (2) Stay alive bonus
-    alive = RewTerm(func=mdp.is_alive, weight=0.2)
+    alive = RewTerm(func=mdp.is_alive, weight=0.1)
     # (3) Reward for maintaining desired orientation with less weight on pitch than roll and yaw
-    rew_orientation = RewTerm(func=mdp.keep_orientation, weight=0.4, 
+    rew_orientation = RewTerm(func=mdp.keep_orientation, weight=0.1, 
                               params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)})
     # (4) Reward for stepping around the ladder x position
-    left_foot_near_ladder = RewTerm(func=mdp.body_part_position_x, weight=0.1, params={"ladder_slope": ladder_slope, 
+    left_foot_near_ladder = RewTerm(func=mdp.body_part_near_x, weight=0.05, params={"ladder_slope": ladder_slope, 
                                                                          "body_part": "left_foot",
                                                                          "distance_limit": 0.2})
-    right_foot_near_ladder = RewTerm(func=mdp.body_part_position_x, weight=0.1, params={"ladder_slope": ladder_slope, 
+    right_foot_near_ladder = RewTerm(func=mdp.body_part_near_x, weight=0.05, params={"ladder_slope": ladder_slope, 
                                                                          "body_part": "right_foot",
                                                                          "distance_limit": 0.2})
     # Reward for holding around the ladder x position
-    left_hand_near_ladder = RewTerm(func=mdp.body_part_position_x, weight=0.1, params={"ladder_slope": ladder_slope, 
+    left_hand_near_ladder = RewTerm(func=mdp.body_part_near_x, weight=0.05, params={"ladder_slope": ladder_slope, 
                                                                          "body_part": "left_hand",
                                                                          "distance_limit": 0.1})
-    right_hand_near_ladder = RewTerm(func=mdp.body_part_position_x, weight=0.1, params={"ladder_slope": ladder_slope, 
+    right_hand_near_ladder = RewTerm(func=mdp.body_part_near_x, weight=0.05, params={"ladder_slope": ladder_slope, 
                                                                          "body_part": "right_hand",
                                                                          "distance_limit": 0.1})
+    # Reward for keeping away from the ladder x position
+    torso_away_ladder = RewTerm(func=mdp.body_part_away_x, weight=0.2, params={"ladder_slope": ladder_slope, 
+                                                                         "body_part": "torso",
+                                                                         "distance_limit": 0.4})
+    pelvis_away_ladder = RewTerm(func=mdp.body_part_away_x, weight=0.4, params={"ladder_slope": ladder_slope, 
+                                                                         "body_part": "pelvis",
+                                                                         "distance_limit": 0.4})
+    # (3) Reward for maintaining desired orientation for body part with less weight on pitch than roll and yaw
+    rew_left_foot_orientation = RewTerm(func=mdp.keep_orientation_body, weight=0.1, 
+                                        params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0), 
+                                                    "body_part": "left_foot"})
+    rew_right_foot_orientation = RewTerm(func=mdp.keep_orientation_body, weight=0.1, 
+                                        params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0), 
+                                                    "body_part": "right_foot"})
     # move_to_target = RewTerm(
     #     func=mdp.move_to_target_bonus, weight=0.5, params={"threshold": 0.8, "target_pos": (1000.0, 0.0, 0.0)}
     # )
@@ -296,7 +322,7 @@ class TerminationsCfg:
     # (2) Terminate if the robot falls, TODO: maybe add maximum height to avoid pure jumping
     torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.8})
     # (3) Terminate if the robot deviates too much from target orientation
-    torso_orientation = DoneTerm(func=mdp.bad_orientation_quat, params={"limit_angle_diff": math.pi/4,
+    torso_orientation = DoneTerm(func=mdp.bad_orientation_quat, params={"limit_angle_diff": math.pi/2,
                                                                         "target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)} )
     # terminate if hands too far away from ladder
     left_hand_off = DoneTerm(func=mdp.body_part_off_ladder, params={"ladder_slope": ladder_slope, 
@@ -305,13 +331,20 @@ class TerminationsCfg:
     right_hand_off = DoneTerm(func=mdp.body_part_off_ladder, params={"ladder_slope": ladder_slope, 
                                                                 "body_part": "right_hand",
                                                                 "distance_limit": 0.25})
+    # terminate if body too near to ladder
+    torso_near = DoneTerm(func=mdp.body_part_near_ladder, params={"ladder_slope": ladder_slope, 
+                                                                "body_part": "torso",
+                                                                "distance_limit": 0.15})
+    pelvis_near = DoneTerm(func=mdp.body_part_near_ladder, params={"ladder_slope": ladder_slope, 
+                                                                "body_part": "pelvis",
+                                                                "distance_limit": 0.25})
     # terminate if feet too far away from ladder
-    # left_foot_off = DoneTerm(func=mdp.body_part_off_ladder, params={"ladder_slope": ladder_slope, 
-    #                                                             "body_part": "left_foot",
-    #                                                             "distance_limit": 0.25})
-    # right_foot_off = DoneTerm(func=mdp.body_part_off_ladder, params={"ladder_slope": ladder_slope, 
-    #                                                             "body_part": "right_foot",
-    #                                                             "distance_limit": 0.25})
+    left_foot_off = DoneTerm(func=mdp.body_part_off_ladder, params={"ladder_slope": ladder_slope, 
+                                                                "body_part": "left_foot",
+                                                                "distance_limit": 0.35})
+    right_foot_off = DoneTerm(func=mdp.body_part_off_ladder, params={"ladder_slope": ladder_slope, 
+                                                                "body_part": "right_foot",
+                                                                "distance_limit": 0.35})
     # (4) Terminate if the feet deviate too much from target orientation
     # feet_orientation = DoneTerm(func=mdp.bad_orientation_quat_feet, params={"limit_angle_diff": math.pi/2,
     #                                                                     "target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)} )

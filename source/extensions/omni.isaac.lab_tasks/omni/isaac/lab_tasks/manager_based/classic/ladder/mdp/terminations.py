@@ -31,6 +31,16 @@ def body_part_off_ladder(
     distance = torch.abs(asset.data.body_pos_w[:,ind_body,0] - env.scene.env_origins[:,0] - ladder_x)
     return distance > distance_limit
 
+def body_part_near_ladder(
+     env: ManagerBasedRLEnv, ladder_slope: func, body_part: str, distance_limit: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """reward for stepping around ladder x position."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    ind_body = asset.data.body_names.index(body_part)
+    ladder_x = ladder_slope(asset.data.body_pos_w[:,ind_body,2])
+    distance = torch.abs(asset.data.body_pos_w[:,ind_body,0] - env.scene.env_origins[:,0] - ladder_x)
+    return distance < distance_limit
+
 def bad_orientation_quat_feet(
     env: ManagerBasedRLEnv, limit_angle_diff: float, target_quat: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:

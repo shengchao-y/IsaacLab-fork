@@ -122,16 +122,26 @@ def step_above(env: BaseEnv, height_steps: list[float], asset_cfg: SceneEntityCf
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
     torso_height = asset.data.root_pos_w[:, 2:3] # [num_envs, 1]
+    step_height_diff = height_steps[-1] - height_steps[-2]
     height_steps_cand = torch.tensor(height_steps, device=env.device).unsqueeze(0).repeat([env.num_envs, 1]) # [num_envs, num_steps]
     height_steps_cand[height_steps_cand<torso_height] = torch.inf
     result = height_steps_cand.min(dim=-1, keepdim=True).values
     if torch.any(result==torch.inf):
         breakpoint()
         # raise ValueError("A robot has already climbed to the top of the ladder.")
-    return result - torso_height
+    pseudo_angle = (step_height_diff - (result - torso_height)) *2 * torch.pi / step_height_diff
+    return torch.cat((torch.sin(pseudo_angle), torch.cos(pseudo_angle)), dim=-1)
 
 def base_pos_x(env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Root height in the simulation world frame."""
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     return asset.data.root_pos_w[:, 0:1]-env.scene.env_origins[:,0:1]
+
+def base_dist_x_ladder(env: BaseEnv, ladder_slope: func, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Relative root x to ladder in the simulation world frame."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    ladder_x = ladder_slope(asset.data.root_pos_w[:, 2])
+    result = torch.abs(asset.data.root_pos_w[:, 0]-env.scene.env_origins[:,0] - ladder_x)
+    return result.unsqueeze(-1)

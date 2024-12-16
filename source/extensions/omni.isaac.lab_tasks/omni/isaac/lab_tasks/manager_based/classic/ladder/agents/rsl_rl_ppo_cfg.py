@@ -16,11 +16,10 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
 class LadderPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     rewards_expect = {
         "progress": 2.0,
-        "alive": 0.2,
-        "left_foot_near_ladder": 0.1,
-        "right_foot_near_ladder": 0.1,
-        "left_hand_near_ladder": 0.1,
-        "right_hand_near_ladder": 0.1,
+        "left_foot_near_ladder": 0.05,
+        "right_foot_near_ladder": 0.05,
+        "left_hand_near_ladder": 0.05,
+        "right_hand_near_ladder": 0.05,
     }
     num_steps_per_env = 32
     max_iterations = 50000
