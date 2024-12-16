@@ -21,6 +21,8 @@ class LadderPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         "left_hand_near_ladder": 0.05,
         "right_hand_near_ladder": 0.05,
     }
+    gage_init_std = 0.0
+    gage_change_rate = 0.0
     num_steps_per_env = 32
     max_iterations = 50000
     save_interval = 50

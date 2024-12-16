@@ -1,6 +1,6 @@
 for seed in 26192416 #26202127 26192416 1484620 72346654 32225970 #31415816 68630553 42161619 14201156 30132438
 do
-    python source/standalone/workflows/rsl_rl/train.py --task Isaac-Ladder-v0 --num_envs 1024 --headless agent.seed=$seed
+    python source/standalone/workflows/rsl_rl/train.py --task Isaac-Ladder-v0 --num_envs 1024 --headless agent.seed=$seed  agent.gage_init_std=0.6 agent.gage_change_rate=2.0
     # python source/standalone/workflows/rsl_rl/train.py --task Isaac-Go2beam-v0 --num_envs 1024 --headless agent.seed=$seed agent.gage_init_std=0.75 agent.rewards_expect.rew_progress=6.0
     # python source/standalone/workflows/rsl_rl/train.py --task Isaac-Go2beam-v0 --num_envs 1024 --headless agent.seed=$seed agent.gage_init_std=0.75 agent.rewards_expect.rew_progress=20.0
     # python source/standalone/workflows/rsl_rl/train.py --task Isaac-Go2beam-v0 --num_envs 1024 --headless agent.seed=$seed agent.ent_schedule_iterations=0 agent.ent_schedule_end=0.75

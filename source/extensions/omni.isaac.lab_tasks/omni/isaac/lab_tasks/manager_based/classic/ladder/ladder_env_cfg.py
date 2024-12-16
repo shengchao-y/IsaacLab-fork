@@ -30,7 +30,7 @@ import math
 ##
 _robot_orientation = (1.0, 0.0, 0.0, 0.0)
 
-_step_poses = [(0.05*i+0.25, 0, 0.3*i) for i in range(1,30)]
+_step_poses = [(0.04*i+0.25, 0, 0.24*i) for i in range(1,30)]
 def ladder_slope(z: float)-> float:
     return (z+1.5)/6.0
 
@@ -66,17 +66,18 @@ class MySceneCfg(InteractiveSceneCfg):
             copy_from_source=False,
         ),
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 1.3),
+            pos=(0.18, 0.0, 1.4),
             joint_pos={
                     "lower_waist:0*": 0.0,
                     "lower_waist:1": 0.5,
-                    ".*_upper_arm.*": 0.0,
+                    ".*_upper_arm:0": -1.0,
+                    ".*_upper_arm:2": 0.0,
                     "pelvis": 0.0,
-                    ".*_lower_arm": 0.0,
+                    ".*_lower_arm": 0.5,
                     ".*_thigh:0": 0.0,
-                    ".*_thigh:1": -1.8,
+                    ".*_thigh:1": -0.6,
                     ".*_thigh:2": 0.0,
-                    ".*_shin": -1.6,
+                    ".*_shin": -0.4,
                     ".*_foot.*": 0.0,
                 },
         ),
@@ -221,7 +222,7 @@ class EventCfg:
         func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
-            "position_range": (-0.2, 0.2),
+            "position_range": (-0.1, 0.1),
             "velocity_range": (-0.1, 0.1),
         },
     )
@@ -341,10 +342,10 @@ class TerminationsCfg:
     # terminate if feet too far away from ladder
     left_foot_off = DoneTerm(func=mdp.body_part_off_ladder, params={"ladder_slope": ladder_slope, 
                                                                 "body_part": "left_foot",
-                                                                "distance_limit": 0.35})
+                                                                "distance_limit": 0.45})
     right_foot_off = DoneTerm(func=mdp.body_part_off_ladder, params={"ladder_slope": ladder_slope, 
                                                                 "body_part": "right_foot",
-                                                                "distance_limit": 0.35})
+                                                                "distance_limit": 0.45})
     # (4) Terminate if the feet deviate too much from target orientation
     # feet_orientation = DoneTerm(func=mdp.bad_orientation_quat_feet, params={"limit_angle_diff": math.pi/2,
     #                                                                     "target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)} )
