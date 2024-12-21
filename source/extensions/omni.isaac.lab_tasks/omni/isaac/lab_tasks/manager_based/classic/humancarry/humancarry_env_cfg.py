@@ -17,6 +17,7 @@ from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.terrains import TerrainImporterCfg
 from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
+from omni.isaac.lab.sensors import ContactSensorCfg
 
 import numpy as np
 from omni.isaac.lab.assets import RigidObjectCfg
@@ -31,8 +32,9 @@ import math
 ##
 
 _box_size = (0.3, 0.3, 0.3)
-_box_init_pose = (0.5, 0, 0.12)
+_box_init_pose = (3.5, 0, 0.12)
 _robot_orientation = (1.0, 0, 0, 0)
+_position_success_threshold = 0.1
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -51,6 +53,7 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot",
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/Humanoid/humanoid_instanceable.usd",
+            activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=None,
                 max_depenetration_velocity=10.0,
@@ -117,6 +120,9 @@ class MySceneCfg(InteractiveSceneCfg):
         init_state=RigidObjectCfg.InitialStateCfg(pos=_box_init_pose,),
     )
 
+    # sensors
+    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*_foot", history_length=3, track_air_time=False)
+
 
 ##
 # MDP settings
@@ -131,12 +137,12 @@ class CommandsCfg:
     box_position = mdp.TargetPosCommandCfg(
         asset_name="box",
         update_goal_on_success=True,
-        position_success_threshold=0.1,
+        position_success_threshold=_position_success_threshold,
         make_quat_unique=False,
         marker_pos_offset=(-0.0, -0.0, 0.0),
         debug_vis=True,
         ranges=mdp.TargetPosCommandCfg.Ranges(
-            pos_x=(0.5, 2), pos_y=(-2, 2), pos_z=(0.5, 1.5)
+            pos_x=(3.5, 5), pos_y=(-2, 2), pos_z=(0.6, 1.5)
         )
     )
 
@@ -237,7 +243,7 @@ class RewardsCfg:
     # (1) Reward for both hands reaching the holding points
     rew_hand2box = RewTerm(func=mdp.reach_box, weight=1.0, params={"box_size_y": _box_size[1]})
     # Reward for positioning of hands to box holding points proximity
-    rew_handonbox = RewTerm(func=mdp.hold_box, weight=1.0, params={"box_size_y": _box_size[1]})
+    rew_handonbox = RewTerm(func=mdp.hold_box, weight=1.0, params={"box_size_y": _box_size[1], "dist_range": 1.0})
     # (2) Stay alive bonus
     rew_alive = RewTerm(func=mdp.is_alive, weight=0.1)
     # (3) Reward for maintaining roll and pitch angle close to 0 with less weight on pitch
@@ -245,8 +251,9 @@ class RewardsCfg:
                               params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)})
     # (4) Reward for box reaching target
     rew_box2target = RewTerm(func=mdp.box_to_target, weight=1.0)
-    rew_boxontarget = RewTerm(func=mdp.box_on_target, weight=1.0,params={"dist_range": 0.2})
-
+    rew_boxontarget = RewTerm(func=mdp.box_on_target, weight=1.0,params={"position_success_threshold": _position_success_threshold})
+    # Reward for keeping upper body gravity center in middle of two feet
+    rew_center_support = RewTerm(func=mdp.center_support, weight=0.1)
     # (5) Penalty for large action commands
     cost_action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
     # (6) Penalty for energy consumption
@@ -287,6 +294,10 @@ class RewardsCfg:
         },
     )
 
+    # cost for feet's contact forces
+    cost_feet_contact = RewTerm(func=mdp.feet_contact_force, weight=-0.1, 
+                                params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*foot",]),})
+
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
@@ -301,10 +312,10 @@ class TerminationsCfg:
     # (4) Terminate if the feet deviate too much from target orientation
     feet_orientation = DoneTerm(func=mdp.bad_orientation_quat_feet, params={"limit_angle_diff": math.pi/2,
                                                                         "target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)} )
-    # Terminate if upper body gravity center far from feet line
-    unstable_support = DoneTerm(func=mdp.unstable_support, params={"dist_limit": 0.15})
+    # Terminate if thighs' angle differ too much
+    # thigh_diff = DoneTerm(func=mdp.thigh_diff, params={"angle_limit": math.pi*0.6})
     # Terminate if box too near to any body part other than hands and feet
-    box_near_body = DoneTerm(func=mdp.box_near_body, params={"dist_limit": math.hypot(*_box_size)/2+0.2})
+    box_near_body = DoneTerm(func=mdp.box_near_body, params={"dist_limit": min(_box_size)/2+0.15})
 
 
 @configclass

@@ -12,6 +12,7 @@ import omni.isaac.lab.utils.math as math_utils
 import omni.isaac.lab.utils.string as string_utils
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
+from omni.isaac.lab.sensors import ContactSensor
 
 from . import observations as obs
 from .commands import TargetPosCommand
@@ -167,6 +168,10 @@ class reach_box(ManagerTermBase):
         self.prev_dist_left = torch.zeros_like(self.dist_left)
         self.prev_dist_right = torch.zeros_like(self.dist_right)
         self.BASIS_VEC_Y = torch.tensor((0.0, 1.0, 0.0), device=self.device).repeat(env.num_envs, 1)
+        self.dist_torso_xy = torch.zeros(env.num_envs, device=env.device)
+        self.prev_dist_torso_xy = torch.zeros(env.num_envs, device=env.device)
+        # outside this range consider xy_distance torso rather than hands
+        self.dist_range_xy = 1.0
 
     def reset(self, env_ids: torch.Tensor):
         asset: Articulation = self._env.scene["robot"]
@@ -175,10 +180,13 @@ class reach_box(ManagerTermBase):
         pos_right_contact = obj.data.root_pos_w[env_ids] + math_utils.quat_rotate(obj.data.root_quat_w[env_ids], -self.BASIS_VEC_Y[env_ids])
         to_left_hand = pos_left_contact - asset.data.body_pos_w[env_ids, asset.data.body_names.index("left_hand")]
         to_right_hand = pos_right_contact - asset.data.body_pos_w[env_ids, asset.data.body_names.index("right_hand")]
+        to_torso = obj.data.root_pos_w[env_ids] - asset.data.body_pos_w[env_ids, asset.data.body_names.index("torso")]
         self.dist_left[env_ids] = torch.norm(to_left_hand, p=2, dim=-1)
         self.dist_right[env_ids] = torch.norm(to_right_hand, p=2, dim=-1)
+        self.dist_torso_xy[env_ids] = torch.norm(to_torso[:, :2], p=2, dim=-1)
         self.prev_dist_left[env_ids] = self.dist_left[env_ids]
         self.prev_dist_right[env_ids] = self.dist_right[env_ids]
+        self.prev_dist_torso_xy[env_ids] = self.dist_torso_xy[env_ids]
 
     def __call__(
         self,
@@ -192,17 +200,22 @@ class reach_box(ManagerTermBase):
         pos_right_contact = obj.data.root_pos_w + math_utils.quat_rotate(obj.data.root_quat_w, -box_size_y/2*self.BASIS_VEC_Y)
         to_left_hand = pos_left_contact - asset.data.body_pos_w[:, asset.data.body_names.index("left_hand")]
         to_right_hand = pos_right_contact - asset.data.body_pos_w[:, asset.data.body_names.index("right_hand")]
+        to_torso = obj.data.root_pos_w - asset.data.body_pos_w[:, asset.data.body_names.index("torso")]
         
         self.prev_dist_left = self.dist_left
         self.prev_dist_right = self.dist_right
+        self.prev_dist_torso_xy = self.dist_torso_xy
         self.dist_left = torch.norm(to_left_hand, p=2, dim=-1)
         self.dist_right = torch.norm(to_right_hand, p=2, dim=-1)
+        self.dist_torso_xy = torch.norm(to_torso[:, :2], p=2, dim=-1)
         # not reward speed higher than 1 m/s
-        return torch.clamp((self.prev_dist_left - self.dist_left) / env.step_dt, max=1.0)/0.5 \
-              + torch.clamp((self.prev_dist_right - self.dist_right) / env.step_dt, max=1.0)/0.5
+        return torch.where(self.dist_torso_xy>self.dist_range_xy, 
+                           torch.clamp((self.prev_dist_torso_xy - self.dist_torso_xy)/env.step_dt, max=1.0),
+                           torch.clamp((self.prev_dist_left - self.dist_left) / env.step_dt, max=1.0)*0.5 \
+                            + torch.clamp((self.prev_dist_right - self.dist_right) / env.step_dt, max=1.0)*0.5)
     
 def hold_box(
-    env: ManagerBasedRLEnv, box_size_y: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    env: ManagerBasedRLEnv, box_size_y: float, dist_range: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """reward positioning of hands to box holding points proximity"""
     asset: Articulation = env.scene[asset_cfg.name]
@@ -231,8 +244,12 @@ def hold_box(
     # print(f"rew_right2y: {rew_right2y}")
     # print(f"rew_left2surface: {rew_left2surface}")
     # print(f"rew_right2surface: {rew_right2surface}")
+    mask_left = torch.ones_like(rew_left2y)
+    mask_left[torch.norm(pos_lefthand_rel_obj, dim=-1)>dist_range] = 0
+    mask_right = torch.ones_like(rew_right2y)
+    mask_right[torch.norm(pos_righthand_rel_obj, dim=-1)>dist_range] = 0
 
-    return rew_left2y * rew_left2surface / 2 + rew_right2y * rew_right2surface / 2
+    return mask_left * rew_left2y * rew_left2surface / 2 + mask_right * rew_right2y * rew_right2surface / 2
 
 class box_to_target(ManagerTermBase):
     """reward for getting box close to the target"""
@@ -275,12 +292,14 @@ class box_to_target(ManagerTermBase):
 
         # not reward speed higher than 1 m/s
         # only reward when close in the z axis to avoid pushing box
-        rew_dist = torch.clamp((self.prev_dist - self.dist) / env.step_dt, max=1.0) * (self.dist_z<0.2)
+        # penalty also when far in z axis to avoid robot drawing circles with box to collect reward
+        rew_dist = torch.clamp((self.prev_dist - self.dist) / env.step_dt, max=1.0) 
+        rew_dist = rew_dist * torch.logical_or(self.dist_z<0.2, rew_dist<0)
 
         return rew_z + rew_dist
 
 def box_on_target(
-    env: ManagerBasedRLEnv, dist_range: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    env: ManagerBasedRLEnv, position_success_threshold: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """reward positioning of hands to box holding points proximity"""
     obj: RigidObject = env.scene["box"]
@@ -288,6 +307,44 @@ def box_on_target(
     goal_position = command_term.command
     to_target = goal_position + env.scene.env_origins - obj.data.root_pos_w
     dist = torch.norm(to_target, p=2, dim=-1)
-    result = torch.exp(-dist * 8.0)
-    result[dist>dist_range] = 0
+    # result = torch.exp(-dist * 6.0)
+    # result[dist>dist_range] = 0
+    result = torch.zeros_like(dist)
+    result[dist<position_success_threshold] = 60.0
     return result
+
+def feet_contact_force(
+    env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    contact_sensors: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # sensor history correspond to simulation frequency, not task control frequency
+    feet_force = 0.5 * (torch.sum(torch.norm(contact_sensors.data.net_forces_w_history[:,0], dim=-1), dim=-1)
+                        + torch.sum(torch.norm(contact_sensors.data.net_forces_w_history[:,1], dim=-1), dim=-1))
+    feet_force_change = 0.5 * (torch.sum(torch.norm(contact_sensors.data.net_forces_w_history[:,0] - contact_sensors.data.net_forces_w_history[:,1], dim=-1), dim=-1)
+                         + torch.sum(torch.norm(contact_sensors.data.net_forces_w_history[:,1] - contact_sensors.data.net_forces_w_history[:,2], dim=-1), dim=-1))
+    # breakpoint()
+    # print(f"contact force: {feet_force}")
+    # print(f"contact force change: {feet_force_change}")
+    return (feet_force + 2*feet_force_change) / 4000.0
+
+def center_support(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """ Reward for torso-pelvis center close to feet center in xy plane"""
+    asset: Articulation = env.scene[asset_cfg.name]
+    left_foot_xy = asset.data.body_pos_w[:,asset.data.body_names.index("left_foot")]
+    left_foot_xy[:,2] = 0
+    right_foot_xy = asset.data.body_pos_w[:,asset.data.body_names.index("right_foot")]
+    right_foot_xy[:,2] = 0
+    torso_xy = asset.data.body_pos_w[:,asset.data.body_names.index("torso")]
+    torso_xy[:,2] = 0
+    pelvis_xy = asset.data.body_pos_w[:,asset.data.body_names.index("pelvis")]
+    pelvis_xy[:,2] = 0
+    pseudo_grav_center_xy = (torso_xy+pelvis_xy) / 2.0
+    feet_center_xy = (left_foot_xy + right_foot_xy) / 2.0
+    pos_rel_xy = pseudo_grav_center_xy - feet_center_xy
+    pos_rel_xy[:,0] = pos_rel_xy[:,0] / 2 # less sensitive in x direction
+    dist = torch.norm(pos_rel_xy, dim=-1)
+    # dist = torch.norm(torch.linalg.cross(left_foot_xy-right_foot_xy, left_foot_xy-pseudo_grav_center_xy), dim=-1) \
+    #         / torch.norm(left_foot_xy-right_foot_xy, dim=-1)
+    return torch.exp(-dist * 6)

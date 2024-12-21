@@ -92,7 +92,12 @@ def object_pose_rel_b(env: ManagerBasedEnv, object_name: str, asset_cfg: SceneEn
     """Relative position of object to robot in the robot frame."""
     obj: RigidObject = env.scene[object_name]
     asset: Articulation = env.scene[asset_cfg.name]
-    return math_utils.quat_rotate_inverse(asset.data.root_quat_w, obj.data.root_pos_w - asset.data.root_pos_w)
+    pos_diff = obj.data.root_pos_w - asset.data.root_pos_w
+    dist = torch.norm(pos_diff, dim=-1, keepdim=True)
+    inds_too_far = (dist>1.5).squeeze(-1)
+    if torch.any(inds_too_far):
+        pos_diff[inds_too_far] = pos_diff[inds_too_far] / dist[inds_too_far] * 1.5
+    return math_utils.quat_rotate_inverse(asset.data.root_quat_w, pos_diff)
 
 def object_lin_vel_rel_b(env: ManagerBasedEnv, object_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Relative object linear velocity in the robot frame."""
@@ -123,4 +128,8 @@ def target_pos_rel(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEn
     command_term: TargetPosCommand = env.command_manager.get_term(command_name)
     goal_position = command_term.command
     pos_diff = goal_position - (asset.data.root_pos_w - env.scene.env_origins)
+    dist = torch.norm(pos_diff, dim=-1, keepdim=True)
+    inds_too_far = (dist>1.5).squeeze(-1)
+    if torch.any(inds_too_far):
+        pos_diff[inds_too_far] = pos_diff[inds_too_far] / dist[inds_too_far] * 1.5
     return math_utils.quat_rotate_inverse(asset.data.root_quat_w, pos_diff)

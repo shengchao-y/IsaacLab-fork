@@ -90,9 +90,12 @@ def unstable_support(
     pelvis_xy = asset.data.body_pos_w[:,asset.data.body_names.index("pelvis")]
     pelvis_xy[:,2] = 0
     pseudo_grav_center_xy = (torso_xy+pelvis_xy) / 2.0
-    dist = torch.norm(torch.linalg.cross(left_foot_xy-right_foot_xy, left_foot_xy-pseudo_grav_center_xy), dim=-1) \
-            / torch.norm(left_foot_xy-right_foot_xy, dim=-1)
-    return dist > dist_limit
+    feet_center_xy = (left_foot_xy + right_foot_xy) / 2.0
+    dist_center = torch.norm(pseudo_grav_center_xy - feet_center_xy, dim=-1)
+    # dist_line = torch.norm(torch.linalg.cross(left_foot_xy-right_foot_xy, left_foot_xy-pseudo_grav_center_xy), dim=-1) \
+    #         / torch.norm(left_foot_xy-right_foot_xy, dim=-1)
+    # print(f"dist: {dist_center}")
+    return dist_center > dist_limit
 
 def box_near_body(
     env: ManagerBasedEnv, dist_limit: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -100,7 +103,18 @@ def box_near_body(
     asset: Articulation = env.scene[asset_cfg.name]
     obj: RigidObject = env.scene["box"]
     result = torch.zeros_like(asset.data.root_pos_w[:,0])
-    for body_part in set(asset.data.body_names) - set(("left_hand", "right_hand", "left_foot", "right_foot")):
+    for body_part in set(asset.data.body_names) - set(("left_hand", "right_hand", "left_foot", "right_foot", "left_lower_arm", "right_lower_arm", "left_shin", "right_shin")):
         dist = torch.norm(asset.data.body_pos_w[:,asset.data.body_names.index(body_part)]-obj.data.root_pos_w, p=2, dim=-1)
-        result = torch.logical_and(result, dist<dist_limit)
-    return result    
+        result = torch.logical_or(result, dist<dist_limit)
+    return result
+
+def thigh_diff(
+    env: ManagerBasedEnv, angle_limit: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    # Terminate when thighs' angle differ too much
+    asset: Articulation = env.scene[asset_cfg.name]
+    quat_diff = math_utils.quat_mul(math_utils.quat_inv(asset.data.body_quat_w[:,asset.data.body_names.index("left_thigh")]),
+                                    asset.data.body_quat_w[:,asset.data.body_names.index("right_thigh")])
+    eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
+    print(f"thigh_diff: {torch.norm(eulers_diff, dim=-1)}")
+    return torch.norm(eulers_diff, dim=-1) > angle_limit
