@@ -116,5 +116,4 @@ def thigh_diff(
     quat_diff = math_utils.quat_mul(math_utils.quat_inv(asset.data.body_quat_w[:,asset.data.body_names.index("left_thigh")]),
                                     asset.data.body_quat_w[:,asset.data.body_names.index("right_thigh")])
     eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
-    print(f"thigh_diff: {torch.norm(eulers_diff, dim=-1)}")
     return torch.norm(eulers_diff, dim=-1) > angle_limit

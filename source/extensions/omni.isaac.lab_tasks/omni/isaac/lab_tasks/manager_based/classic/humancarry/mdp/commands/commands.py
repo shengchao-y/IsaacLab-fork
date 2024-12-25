@@ -64,6 +64,9 @@ class TargetPosCommand(CommandTerm):
         # -- metrics
         self.metrics["position_error"] = torch.zeros(self.num_envs, device=self.device)
 
+        # -- goal reset ids for reaching target
+        self.goal_reset_ids = (self.metrics["position_error"]>1.0).nonzero(as_tuple=False).squeeze(-1)
+
     def __str__(self) -> str:
         msg = "HumancarryTargetPosCommandGenerator:\n"
         msg += f"\tCommand dimension: {tuple(self.command.shape[1:])}\n"
@@ -99,9 +102,9 @@ class TargetPosCommand(CommandTerm):
         if self.cfg.update_goal_on_success:
             # compute the goal resets
             goal_resets = self.metrics["position_error"] < self.cfg.position_success_threshold
-            goal_reset_ids = goal_resets.nonzero(as_tuple=False).squeeze(-1)
+            self.goal_reset_ids = goal_resets.nonzero(as_tuple=False).squeeze(-1)
             # resample the goals
-            self._resample(goal_reset_ids)
+            self._resample(self.goal_reset_ids)
 
     def _set_debug_vis_impl(self, debug_vis: TYPE_CHECKING):
         # set visibility of markers

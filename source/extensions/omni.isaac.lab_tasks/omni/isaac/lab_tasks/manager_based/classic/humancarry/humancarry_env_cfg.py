@@ -32,7 +32,7 @@ import math
 ##
 
 _box_size = (0.3, 0.3, 0.3)
-_box_init_pose = (3.5, 0, 0.12)
+_box_init_pose = (3.5, 0, 0.155)
 _robot_orientation = (1.0, 0, 0, 0)
 _position_success_threshold = 0.1
 
@@ -243,17 +243,24 @@ class RewardsCfg:
     # (1) Reward for both hands reaching the holding points
     rew_hand2box = RewTerm(func=mdp.reach_box, weight=1.0, params={"box_size_y": _box_size[1]})
     # Reward for positioning of hands to box holding points proximity
-    rew_handonbox = RewTerm(func=mdp.hold_box, weight=1.0, params={"box_size_y": _box_size[1], "dist_range": 1.0})
+    rew_handonbox = RewTerm(func=mdp.hold_box, weight=2.0, params={"box_size_y": _box_size[1], "dist_range": 1.0})
     # (2) Stay alive bonus
     rew_alive = RewTerm(func=mdp.is_alive, weight=0.1)
     # (3) Reward for maintaining roll and pitch angle close to 0 with less weight on pitch
     rew_orientation = RewTerm(func=mdp.keep_orientation_xy, weight=1.0, 
                               params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)})
     # (4) Reward for box reaching target
-    rew_box2target = RewTerm(func=mdp.box_to_target, weight=1.0)
+    rew_box2target = RewTerm(func=mdp.box_to_target, weight=1.0, params={"box_size_z": _box_size[2]})
     rew_boxontarget = RewTerm(func=mdp.box_on_target, weight=1.0,params={"position_success_threshold": _position_success_threshold})
     # Reward for keeping upper body gravity center in middle of two feet
     rew_center_support = RewTerm(func=mdp.center_support, weight=0.1)
+    # Reward for maintaining desired orientation for body part with less weight on pitch than roll and yaw
+    rew_left_foot_orientation = RewTerm(func=mdp.keep_orientation_body, weight=0.1, 
+                                        params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0), 
+                                                    "body_part": "left_foot"})
+    rew_right_foot_orientation = RewTerm(func=mdp.keep_orientation_body, weight=0.1, 
+                                        params={"target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0), 
+                                                    "body_part": "right_foot"})
     # (5) Penalty for large action commands
     cost_action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
     # (6) Penalty for energy consumption
@@ -295,7 +302,7 @@ class RewardsCfg:
     )
 
     # cost for feet's contact forces
-    cost_feet_contact = RewTerm(func=mdp.feet_contact_force, weight=-0.1, 
+    cost_feet_contact = RewTerm(func=mdp.feet_contact_force, weight=-0.4, 
                                 params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*foot",]),})
 
 @configclass
@@ -313,7 +320,9 @@ class TerminationsCfg:
     feet_orientation = DoneTerm(func=mdp.bad_orientation_quat_feet, params={"limit_angle_diff": math.pi/2,
                                                                         "target_quat": math_utils.quat_inv(torch.tensor(_robot_orientation)).unsqueeze(0)} )
     # Terminate if thighs' angle differ too much
-    # thigh_diff = DoneTerm(func=mdp.thigh_diff, params={"angle_limit": math.pi*0.6})
+    thigh_diff = DoneTerm(func=mdp.thigh_diff, params={"angle_limit": math.pi*0.7})
+    # Terminate if support center deviates too much from feet center
+    unstable_support = DoneTerm(func=mdp.unstable_support, params={"dist_limit": 0.4})
     # Terminate if box too near to any body part other than hands and feet
     box_near_body = DoneTerm(func=mdp.box_near_body, params={"dist_limit": min(_box_size)/2+0.15})
 

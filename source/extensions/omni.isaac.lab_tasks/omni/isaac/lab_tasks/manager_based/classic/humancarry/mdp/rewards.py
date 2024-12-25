@@ -249,7 +249,7 @@ def hold_box(
     mask_right = torch.ones_like(rew_right2y)
     mask_right[torch.norm(pos_righthand_rel_obj, dim=-1)>dist_range] = 0
 
-    return mask_left * rew_left2y * rew_left2surface / 2 + mask_right * rew_right2y * rew_right2surface / 2
+    return mask_left * (rew_left2y + rew_left2surface) / 4 + mask_right * (rew_right2y + rew_right2surface) / 4
 
 class box_to_target(ManagerTermBase):
     """reward for getting box close to the target"""
@@ -276,10 +276,12 @@ class box_to_target(ManagerTermBase):
     def __call__(
         self,
         env: ManagerBasedRLEnv,
+        box_size_z: float,
         asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     ) -> torch.Tensor:
         obj: RigidObject = self._env.scene["box"]
         goal_position = self.command_term.command
+        goal_reset_ids = self.command_term.goal_reset_ids
         to_target = goal_position + self._env.scene.env_origins - obj.data.root_pos_w
 
         self.prev_dist = self.dist
@@ -288,15 +290,18 @@ class box_to_target(ManagerTermBase):
         # prioritize box positioning in z direction to avoid pushing box
         self.prev_dist_z = self.dist_z
         self.dist_z = torch.abs(obj.data.root_pos_w[:, 2] - goal_position[:, 2])
-        rew_z = torch.clamp((self.prev_dist_z - self.dist_z) / env.step_dt, min=-1.0, max=1.0)
+        rew_z = (self.prev_dist_z - self.dist_z) / env.step_dt
 
         # not reward speed higher than 1 m/s
         # only reward when close in the z axis to avoid pushing box
         # penalty also when far in z axis to avoid robot drawing circles with box to collect reward
         rew_dist = torch.clamp((self.prev_dist - self.dist) / env.step_dt, max=1.0) 
-        rew_dist = rew_dist * torch.logical_or(self.dist_z<0.2, rew_dist<0)
+        rew_dist = rew_dist * (obj.data.root_pos_w[:, 2]>box_size_z/2+0.25)
 
-        return rew_z + rew_dist
+        result = 4*rew_z + rew_dist
+        # no reward for the step after success goal reset, otherwise it introduces large negative reward
+        result[goal_reset_ids] = 0
+        return result
 
 def box_on_target(
     env: ManagerBasedRLEnv, position_success_threshold: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -325,7 +330,7 @@ def feet_contact_force(
     # breakpoint()
     # print(f"contact force: {feet_force}")
     # print(f"contact force change: {feet_force_change}")
-    return (feet_force + 2*feet_force_change) / 4000.0
+    return (feet_force + 5*feet_force_change) / 4000.0
 
 def center_support(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -348,3 +353,15 @@ def center_support(
     # dist = torch.norm(torch.linalg.cross(left_foot_xy-right_foot_xy, left_foot_xy-pseudo_grav_center_xy), dim=-1) \
     #         / torch.norm(left_foot_xy-right_foot_xy, dim=-1)
     return torch.exp(-dist * 6)
+
+def keep_orientation_body(
+    env: ManagerBasedRLEnv, target_quat: torch.Tensor, body_part: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """reward for keeping close to target orientation."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    quat_body = asset.data.body_quat_w[:,asset.data.body_names.index(body_part)]
+    quat_diff = math_utils.quat_mul(target_quat.to(env.device).repeat(env.num_envs, 1), 
+                                    quat_body)
+    eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
+    eulers_diff[:,1] = eulers_diff[:,1] / 2 # do not need to keep pitch exactly
+    return torch.exp(-torch.norm(eulers_diff, dim=-1))

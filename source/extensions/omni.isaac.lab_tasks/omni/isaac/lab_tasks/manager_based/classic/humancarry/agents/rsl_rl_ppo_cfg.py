@@ -25,18 +25,18 @@ class HumancarryPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         # TODO: simple goal achievement aggregation may not work for humancarry,
         # because it collect different reward terms in different periods
         "rew_hand2box": GoalReward(name="rew_hand2box", 
-                                   max_value=0.15, gage_init_std=1.0, gage_change_rate=1.0),
+                                   max_value=0.1, gage_init_std=1.0, gage_change_rate=1.0),
         "rew_handonbox": GoalReward(name="rew_handonbox", 
-                                    max_value=0.5, gage_init_std=0.8, gage_change_rate=1.0),
+                                    max_value=1.0, gage_init_std=0.8, gage_change_rate=1.0),
         "rew_box2target": GoalReward(name="rew_box2target", 
-                                     max_value=0.25, gage_init_std=0.4, gage_change_rate=1.0),
+                                     max_value=0.6, gage_init_std=0.6, gage_change_rate=1.0),
         # "rew_boxontarget": GoalReward(name="rew_boxontarget", 
         #                               max_value=0.8, gage_init_std=0.4, gage_change_rate=1.0),
     }
     # gage_init_std = 0.0
     # gage_change_rate = 0.0
     num_steps_per_env = 32
-    max_iterations = 50000
+    max_iterations = 20000
     save_interval = 50
     experiment_name = "humancarry"
     empirical_normalization = False
