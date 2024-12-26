@@ -222,7 +222,7 @@ class move_up_vel(ManagerTermBase):
     ) -> torch.Tensor:
         asset: Articulation = self._env.scene[asset_cfg.name]
         self.prev_pos_z = self.pos_z
-        self.pos_z = asset.data.root_pos_w
+        self.pos_z = asset.data.root_pos_w[:,2]
         result = torch.clamp((self.pos_z - self.prev_pos_z)/env.step_dt/target_vel, max=1.0)
         return result
 
