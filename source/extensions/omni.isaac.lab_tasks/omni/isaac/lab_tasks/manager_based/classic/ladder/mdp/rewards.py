@@ -185,24 +185,46 @@ def body_part_away_x(
     result[result>distance_limit] = distance_limit
     return result
     
-def move_up_vel(
-    env: ManagerBasedRLEnv, target_vel: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-) -> torch.Tensor:
-    """Reward for moving up at defined velocity."""
-    asset: Articulation = env.scene[asset_cfg.name]
-    # vel_diff = asset.data.root_vel_w[:, 2] - target_vel
-    # robot learns to shake at very high frequency to give every sample step a positive v value
-    # result = asset.data.root_vel_w[:, 2] / target_vel
-    vel_z_substitute = (asset.data.root_pos_w[:, 2] - env.root_pos_w_z) / env.step_dt
-    # robot learns to do pull-up to gather the reward difference between positive and negative v
-    # result = torch.exp(vel_z_substitute * np.log(2.0) / target_vel) - 1.0
-    result = vel_z_substitute  / target_vel
-    result[result>1.0] = 1.0
-    # if(torch.any(env.reset_buf==True)):
-    #     breakpoint()
-    # print(f"v_z: {asset.data.root_vel_w[:, 2].item()}")
-    # print(f"z: {asset.data.root_pos_w[:, 2].item()}")
-    return result
+# def move_up_vel(
+#     env: ManagerBasedRLEnv, target_vel: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+# ) -> torch.Tensor:
+#     """Reward for moving up at defined velocity."""
+#     asset: Articulation = env.scene[asset_cfg.name]
+#     # robot learns to shake at very high frequency to give every sample step a positive v value
+#     # result = asset.data.root_vel_w[:, 2] / target_vel
+#     vel_z_substitute = (asset.data.root_pos_w[:, 2] - env.root_pos_w_z) / env.step_dt
+#     # robot learns to do pull-up to gather the reward difference between positive and negative v
+#     # result = torch.exp(vel_z_substitute * np.log(2.0) / target_vel) - 1.0
+#     result = vel_z_substitute  / target_vel
+#     result[result>1.0] = 1.0
+#     return result
+
+class move_up_vel(ManagerTermBase):
+    """reward for moving up at defined velocity."""
+
+    def __init__(self, env: ManagerBasedRLEnv, cfg: RewardTermCfg):
+        # initialize the base class
+        super().__init__(cfg, env)
+        # create history buffer
+        self.pos_z = torch.zeros(env.num_envs, device=env.device)
+        self.prev_pos_z = torch.zeros(env.num_envs, device=env.device)
+
+    def reset(self, env_ids: torch.Tensor):
+        asset: Articulation = self._env.scene["robot"]
+        self.pos_z[env_ids] = asset.data.root_pos_w[env_ids,2]
+        self.prev_pos_z[env_ids] = self.pos_z[env_ids]
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        target_vel: float,
+        asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    ) -> torch.Tensor:
+        asset: Articulation = self._env.scene[asset_cfg.name]
+        self.prev_pos_z = self.pos_z
+        self.pos_z = asset.data.root_pos_w
+        result = torch.clamp((self.pos_z - self.prev_pos_z)/env.step_dt/target_vel, max=1.0)
+        return result
 
 def limbs_up_vel(
     env: ManagerBasedRLEnv, target_vel: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
