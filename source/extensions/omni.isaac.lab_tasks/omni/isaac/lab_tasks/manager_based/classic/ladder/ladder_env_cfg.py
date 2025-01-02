@@ -30,7 +30,7 @@ import math
 ##
 _robot_orientation = (1.0, 0.0, 0.0, 0.0)
 
-_step_poses = [(0.04*i+0.25, 0, 0.24*i) for i in range(1,30)]
+_step_poses = [(0.04*i+0.25, 0, 0.24*i) for i in range(1,40)]
 def ladder_slope(z: float)-> float:
     return (z+1.5)/6.0
 
@@ -122,7 +122,7 @@ for i in range(len(_step_poses)):
             RigidObjectCfg(
                     prim_path="{ENV_REGEX_NS}/Step"+str(i),
                     spawn=sim_utils.CuboidCfg(
-                        size=(0.04, 10, 0.04),
+                        size=(0.04, 5.0, 0.04),
                         rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
                         collision_props=sim_utils.CollisionPropertiesCfg(),
                         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.3, 0.6), metallic=0.2),

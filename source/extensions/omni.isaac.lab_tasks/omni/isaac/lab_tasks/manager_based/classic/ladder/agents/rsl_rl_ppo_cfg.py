@@ -24,8 +24,8 @@ class LadderPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     gage_init_std = 0.0
     gage_change_rate = 0.0
     num_steps_per_env = 32
-    max_iterations = 50000
-    save_interval = 50
+    max_iterations = 20000
+    save_interval = 1000
     experiment_name = "ladder"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
