@@ -11,3 +11,4 @@ from .observations import *
 from .rewards import *
 from .resets import *
 from .terminations import *
+from .commands import *

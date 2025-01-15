@@ -13,7 +13,7 @@ from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
 
 if TYPE_CHECKING:
-    from omni.isaac.lab.envs import ManagerBasedEnv
+    from omni.isaac.lab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 
 
 def base_yaw_roll(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
@@ -112,3 +112,11 @@ def object_quat(env: ManagerBasedEnv, object_name: str, asset_cfg: SceneEntityCf
     # extract the used quantities (to enable type-hinting)
     obj: RigidObject = env.scene[object_name]
     return obj.data.root_quat_w
+
+##############################
+
+def target_heading(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Target movidng direction in the simulation world frame."""
+    # use sin and cos to avoid angle wrapping at -pi, pi
+    heading = env.command_manager.get_command(command_name).unsqueeze(dim=-1)
+    return torch.concat((torch.cos(heading), torch.sin(heading)), dim=-1)

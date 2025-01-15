@@ -97,8 +97,14 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    # no commands for this MDP
-    null = mdp.NullCommandCfg()
+    # pole target moving direction
+    pole_heading_w = mdp.TargetDirCommandCfg(
+        asset_name="pole",
+        resampling_time_range=(4.0, 4.0),
+        make_quat_unique=False,
+        debug_vis=True,
+        range_heading=(-math.pi, math.pi)
+    )
 
 
 @configclass
@@ -115,6 +121,8 @@ class ObservationsCfg:
     @configclass
     class PolicyCfg(ObsGroup):
         """Observations for the policy."""
+        # target direction
+        goal_heading = ObsTerm(func=mdp.target_heading, params={"command_name": "pole_heading_w"})
         # pole
         pole_pos_rel_b = ObsTerm(func=mdp.object_pose_rel_b, params={"object_name": "pole"})
         pole_lin_vel_rel_b = ObsTerm(func=mdp.object_lin_vel_rel_b, params={"object_name": "pole"})

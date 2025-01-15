@@ -12,6 +12,7 @@ import omni.isaac.lab.utils.math as math_utils
 import omni.isaac.lab.utils.string as string_utils
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
+from .commands import TargetDirCommand
 
 from . import observations as obs
 from omni.isaac.core.utils.torch.rotations import normalize_angle
@@ -164,14 +165,18 @@ def pole_moving(
 ) -> torch.Tensor:
     """reward for tracking pole's target position."""
     obj: RigidObject = env.scene[object_name]
-    return -torch.abs(obj.data.root_vel_w[:, 0]/target_vel - 1.0) + 1.0
+    command_term: TargetDirCommand = env.command_manager.get_term("pole_heading_w")
+    vel_pole_rel = math_utils.quat_rotate_inverse(command_term.goal_quat, obj.data.root_lin_vel_w)
+    return -torch.abs(vel_pole_rel[:, 0]/target_vel - 1.0) + 1.0
 
 def object_off_track(
     env: ManagerBasedRLEnv, object_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """penalty for going off track."""
     obj: RigidObject = env.scene[object_name]
-    return torch.abs(obj.data.root_vel_w[:, 1])
+    command_term: TargetDirCommand = env.command_manager.get_term("pole_heading_w")
+    vel_pole_rel = math_utils.quat_rotate_inverse(command_term.goal_quat, obj.data.root_lin_vel_w)
+    return torch.abs(vel_pole_rel[:, 1])
 
 def keep_orientation(
     env: ManagerBasedRLEnv, target_quat: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -181,5 +186,4 @@ def keep_orientation(
     quat_diff = math_utils.quat_mul(target_quat.to(env.device).repeat(env.num_envs, 1), 
                                     asset.data.root_quat_w)
     eulers_diff = normalize_angle(torch.stack(math_utils.euler_xyz_from_quat(quat_diff), dim=1))
-    eulers_diff[:,1] = eulers_diff[:,1] * 2 # do not need to keep pitch exactly
     return torch.exp(-torch.norm(eulers_diff, dim=-1))
