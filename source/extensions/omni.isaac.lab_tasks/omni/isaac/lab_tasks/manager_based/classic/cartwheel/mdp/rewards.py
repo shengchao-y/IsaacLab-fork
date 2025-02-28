@@ -51,6 +51,16 @@ def heading_forward(
     asset: Articulation = env.scene[asset_cfg.name]
     heading_vec = math_utils.quat_rotate(asset.data.root_quat_w, asset.data.FORWARD_VEC_B)
     return heading_vec[:,0]
+    # heading_vec_torso = math_utils.quat_rotate(asset.data.root_quat_w, asset.data.FORWARD_VEC_B)
+    # # yz_norm_torso = torch.norm(heading_vec_torso[:,1:], dim=-1)
+    # heading_vec_pelvis = math_utils.quat_rotate(asset.data.body_quat_w[:,5], asset.data.FORWARD_VEC_B)
+    # # yz_norm_pelvis = torch.norm(heading_vec_pelvis[:,1:], dim=-1)
+    # ind_left_foot = asset.data.body_names.index("left_foot")
+    # ind_right_foot = asset.data.body_names.index("right_foot")
+    # heading_vec_left_foot = math_utils.quat_rotate(asset.data.body_quat_w[:,ind_left_foot], asset.data.FORWARD_VEC_B)
+    # heading_vec_right_foot = math_utils.quat_rotate(asset.data.body_quat_w[:,ind_right_foot], asset.data.FORWARD_VEC_B)
+    # # return torch.exp(-yz_norm_torso-yz_norm_pelvis)
+    # return 0.5*(heading_vec_torso[:,0] + heading_vec_pelvis[:,0] + heading_vec_left_foot[:,0] + heading_vec_right_foot[:,0])
 
 def move_to_target_bonus(
     env: ManagerBasedRLEnv,
@@ -161,3 +171,15 @@ class power_consumption(ManagerTermBase):
         asset: Articulation = env.scene[asset_cfg.name]
         # return power = torque * velocity (here actions: joint torques)
         return torch.sum(torch.abs(env.action_manager.action * asset.data.joint_vel * self.gear_ratio_scaled), dim=-1)
+
+def bend_joint(
+    env: ManagerBasedRLEnv, joint_names: list[str], angle_limit: float, angle_target: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Cost for bending joints."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    joint_ids = [asset.data.joint_names.index(joint_part) for joint_part in joint_names]
+    joint_poses = torch.abs(torch.stack([asset.data.joint_pos[:,ind_joint]-angle_target for ind_joint in joint_ids], dim=-1))
+    joint_poses -= angle_limit
+    joint_poses[joint_poses<0] = 0
+    # print(f"knee_poses after: {knee_poses}")
+    return torch.sum(joint_poses, dim=-1)

@@ -254,6 +254,18 @@ class RewardsCfg:
 
     # reward for heading forward
     heading_forward = RewTerm(func=mdp.heading_forward, weight=0.5)
+    # penalty for bending knee
+    cost_knee = RewTerm(func=mdp.bend_joint, weight=-0.1, params={"joint_names": ["left_shin", "right_shin"],
+                                                                  "angle_limit": 0.8,
+                                                                  "angle_target": 0})
+    # penalty for bending thigh
+    cost_thigh = RewTerm(func=mdp.bend_joint, weight=-0.5, params={"joint_names": ["left_thigh:1", "right_thigh:1"],
+                                                                  "angle_limit": 0.8,
+                                                                  "angle_target": 0})
+    # penalty for lower arm
+    cost_arm = RewTerm(func=mdp.bend_joint, weight=-0.1, params={"joint_names": ["right_upper_arm:0", "left_upper_arm:0"],
+                                                                  "angle_limit": 0.8,
+                                                                  "angle_target": -1.5})
 
 
 @configclass
@@ -266,6 +278,10 @@ class TerminationsCfg:
     pelvis_height = DoneTerm(func=mdp.bad_pelvis_height, params={"minimum_height": 0.6,"maximum_height": 1.2})
     # terminate if robot bends too much
     torso_heading = DoneTerm(func=mdp.bad_heading, params={"minimum_heading_proj": 0.7})
+    # terminate if hands and feet not aligned
+    # hands_feet_align = DoneTerm(func=mdp.hands_feet_align, params={"maximum_dist": 1.0})
+    # terminate for bad feet orientation
+    feet_heading = DoneTerm(func=mdp.bad_feet_heading, params={"minimum_heading_proj": 0.7})
 
 
 @configclass
