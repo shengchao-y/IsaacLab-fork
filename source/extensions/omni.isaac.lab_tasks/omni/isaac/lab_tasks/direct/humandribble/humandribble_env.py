@@ -86,7 +86,7 @@ class HumandribbleEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/ball",
         spawn=sim_utils.SphereCfg(
             radius=0.11,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(linear_damping=0.8,),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(linear_damping=0.6,),
             mass_props=sim_utils.MassPropertiesCfg(density=0.08),
             collision_props=sim_utils.CollisionPropertiesCfg(),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.3, 0.6), metallic=0.2),

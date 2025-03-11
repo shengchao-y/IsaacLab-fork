@@ -29,11 +29,11 @@ class Go2beamPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     ent_schedule_iterations = 0
     ent_schedule_init = 0.8
     ent_schedule_end = 0.01
-    save_interval = 50
+    save_interval = 800
     experiment_name = "go2beam"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
-        class_name="ActorCritic_RND",
+        class_name="ActorCritic",
         init_noise_std=1.0,
         actor_hidden_dims=[400, 200, 100],
         critic_hidden_dims=[400, 200, 100],

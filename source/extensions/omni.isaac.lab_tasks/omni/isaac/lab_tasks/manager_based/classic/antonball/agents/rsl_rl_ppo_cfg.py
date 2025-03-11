@@ -25,11 +25,12 @@ class AntonballPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     gage_init_std = 0.0
     num_steps_per_env = 32
     max_iterations = 6000
-    save_interval = 50
+    save_interval = 600
     experiment_name = "antonball"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
-        class_name="ActorCritic_RND",
+        # class_name="ActorCritic_RND",
+        class_name="ActorCritic",
         init_noise_std=1.0,
         actor_hidden_dims=[400, 200, 100],
         critic_hidden_dims=[400, 200, 100],

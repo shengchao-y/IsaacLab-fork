@@ -24,8 +24,8 @@ class HumanpolePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     gage_init_std = 0.0
     gage_change_rate = 0.0
     num_steps_per_env = 32
-    max_iterations = 20000
-    save_interval = 100
+    max_iterations = 10000
+    save_interval = 1000
     experiment_name = "humanpole"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
