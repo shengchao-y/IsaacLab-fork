@@ -16,6 +16,7 @@ class CartwheelPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     rewards_expect = {
         "spin": 2.0,
     }
+    total_reward_expect = 0.0
     gage_init_std = 0.0
     gage_change_rate = 0.0
     num_steps_per_env = 32

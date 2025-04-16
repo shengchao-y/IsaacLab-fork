@@ -23,6 +23,7 @@ class Go2beamPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         # "rew_alive": 1.0,
         # "rew_orientation": 1.0,
     }
+    total_reward_expect = 0.0
     gage_init_std = 0.0
     num_steps_per_env = 32
     max_iterations = 8000
