@@ -28,6 +28,18 @@ class RslRlPpoActorCriticCfg:
     activation: str = MISSING
     """The activation function for the actor and critic networks."""
 
+    gage_tech: str = "NO"
+    """The gage tech used for discrete action space."""
+
+    gage_param0: float = 0.0
+    """The param0 for gage discrete."""
+
+    gage_param1: float = 0.0
+    """The param1 for gage discrete."""
+
+    log_coef: float = 0.0
+    """The loss coeficient for logit loss."""
+
 
 @configclass
 class RslRlPpoAlgorithmCfg:
