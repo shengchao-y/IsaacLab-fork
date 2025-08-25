@@ -186,6 +186,22 @@ class ActionManager(ManagerBase):
         # create buffers to store actions
         self._action = torch.zeros((self.num_envs, self.total_action_dim), device=self.device)
         self._prev_action = torch.zeros_like(self._action)
+        self._pos_limits_go2 = torch.tensor([[-1.0472,  1.0472],
+                                            [-1.0472,  1.0472],
+                                            [-1.0472,  1.0472],
+                                            [-1.0472,  1.0472],
+                                            [-1.5708,  3.4907],
+                                            [-1.5708,  3.4907],
+                                            [-0.5236,  4.5379],
+                                            [-0.5236,  4.5379],
+                                            [-2.7227, -0.8378],
+                                            [-2.7227, -0.8378],
+                                            [-2.7227, -0.8378],
+                                            [-2.7227, -0.8378]], device=self.device)
+        self._pos_limits_go2[:,0] -= 0.3
+        self._pos_limits_go2[:,1] += 0.3
+        self._pos_rescale0 = (self._pos_limits_go2[:,1] - self._pos_limits_go2[:,0])/2
+        self._pos_rescale1 = (self._pos_limits_go2[:,1] + self._pos_limits_go2[:,0])/2
 
         self.cfg.debug_vis = False
         for term in self._terms.values():
@@ -303,8 +319,8 @@ class ActionManager(ManagerBase):
             # ant and humanoid use ImplicitActuator and do not have torque limit in usd model.
             # Therefore, there actions have to be clamped before given to the simulator
             action = torch.clip(action, -1.0, 1.0)
-        elif hasattr(self.cfg, "joint_pos") or hasattr(self.cfg, "gripper_action"):
-            pass
+        elif hasattr(self.cfg, "joint_pos"):
+            action = self._pos_rescale0 * action + self._pos_rescale1
         else:
             raise ValueError("Only joint_effort and joint_pos allowed in GAGE!")
         
