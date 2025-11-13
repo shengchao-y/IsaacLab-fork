@@ -239,7 +239,7 @@ class AntonballEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the MuJoCo-style antonball acrobatics environment."""
 
     # Scene settings
-    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=5.0)
+    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=2.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

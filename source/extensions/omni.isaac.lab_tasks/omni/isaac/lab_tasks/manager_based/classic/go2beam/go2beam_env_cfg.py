@@ -87,7 +87,7 @@ class MySceneCfg(InteractiveSceneCfg):
                         collision_props=sim_utils.CollisionPropertiesCfg(),
                         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.3, 0.6), metallic=0.2),
                     ),
-                    init_state=RigidObjectCfg.InitialStateCfg(pos=(_beam_x,0,_beam_z),
+                    init_state=RigidObjectCfg.InitialStateCfg(pos=(_beam_x,3.0,_beam_z),
                                                               rot=_beam_quat),
                 )
 
@@ -234,7 +234,7 @@ class Go2beamEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the Unitree Go2 walking on balance beam environment."""
 
     # Scene settings
-    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=5.0)
+    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=2.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

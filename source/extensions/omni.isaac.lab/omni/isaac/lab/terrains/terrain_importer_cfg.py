@@ -57,6 +57,7 @@ class TerrainImporterCfg:
     Only used if ``terrain_type`` is set to "usd".
     """
 
+    # env_spacing: float | None = None
     env_spacing: float | None = None
     """The spacing between environment origins when defined in a grid. Defaults to None.
 

@@ -109,9 +109,10 @@ class MySceneCfg(InteractiveSceneCfg):
                         height=100.,
                         rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
                         collision_props=sim_utils.CollisionPropertiesCfg(),
-                        visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.3, 0.6), metallic=0.2),
+                        visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.8, 0.3, 0.6), metallic=0.2),
                     ),
                     init_state=RigidObjectCfg.InitialStateCfg(pos=(45,0,0.8),rot=(0.7071068, 0, 0.7071068, 0)),
+                    # init_state=RigidObjectCfg.InitialStateCfg(pos=(45,3,0.8),rot=(0.7071068, 0, 0.7071068, 0)),
                 )
 
 ##
@@ -295,7 +296,7 @@ class HumanropeEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the MuJoCo-style Humanoid walking on tight rope environment."""
 
     # Scene settings
-    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=5.0)
+    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=2.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

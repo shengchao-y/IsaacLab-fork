@@ -151,14 +151,21 @@ def spawn_ground_plane(
 
     # Scale only the mesh
     # Warning: This is specific to the default grid plane asset.
-    if prim_utils.is_prim_path_valid(f"{prim_path}/Enviroment"):
+    # if prim_utils.is_prim_path_valid(f"{prim_path}/Environment"):
+    if prim_utils.is_prim_path_valid(f"{prim_path}/Environment"):
         # compute scale from size
-        scale = (cfg.size[0] / 100.0, cfg.size[1] / 100.0, 1.0)
+        scale = (cfg.size[0] / 100.0, cfg.size[1] / 100.0, 1.5)
         # apply scale to the mesh
         omni.kit.commands.execute(
             "ChangeProperty",
-            prop_path=Sdf.Path(f"{prim_path}/Enviroment.xformOp:scale"),
+            prop_path=Sdf.Path(f"{prim_path}/Environment.xformOp:scale"),
             value=scale,
+            prev=None,
+        )
+        omni.kit.commands.execute(
+            "ChangeProperty",
+            prop_path=Sdf.Path(f"{prim_path}/Environment.xformOp:translate"),
+            value=(0.0, 0.0, 0.005),
             prev=None,
         )
 
@@ -177,6 +184,7 @@ def spawn_ground_plane(
     # Remove the light from the ground plane
     # It isn't bright enough and messes up with the user's lighting settings
     omni.kit.commands.execute("ToggleVisibilitySelectedPrims", selected_paths=[f"{prim_path}/SphereLight"])
+    omni.kit.commands.execute("ToggleVisibilitySelectedPrims", selected_paths=[f"/Environment/defaultLight"])
 
     # return the prim
     return prim_utils.get_prim_at_path(prim_path)

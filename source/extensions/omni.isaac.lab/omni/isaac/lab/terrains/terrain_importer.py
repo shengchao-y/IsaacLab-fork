@@ -199,9 +199,8 @@ class TerrainImporter:
 
         # get the mesh
         # ground_plane_cfg = sim_utils.GroundPlaneCfg(physics_material=self.cfg.physics_material, size=size)
-        ground_plane_cfg = sim_utils.GroundPlaneCfg(physics_material=self.cfg.physics_material, size=size,
+        ground_plane_cfg = sim_utils.GroundPlaneCfg(physics_material=self.cfg.physics_material, size=(150.0, 150.0),
                                                     usd_path=f"{ISAAC_NUCLEUS_DIR}/Environments/Grid/gridroom_curved.usd")
-        
         ground_plane_cfg.func(self.cfg.prim_path, ground_plane_cfg)
 
     def import_mesh(self, key: str, mesh: trimesh.Trimesh):
@@ -351,17 +350,32 @@ class TerrainImporter:
         env_origins[:] = origins[self.terrain_levels, self.terrain_types]
         return env_origins
 
+    # def _compute_env_origins_grid(self, num_envs: int, env_spacing: float) -> torch.Tensor:
+    #     """Compute the origins of the environments in a grid based on configured spacing."""
+    #     # create tensor based on number of environments
+    #     env_origins = torch.zeros(num_envs, 3, device=self.device)
+    #     # create a grid of origins
+    #     num_rows = np.ceil(num_envs / int(np.sqrt(num_envs)))
+    #     num_cols = np.ceil(num_envs / num_rows)
+    #     ii, jj = torch.meshgrid(
+    #         torch.arange(num_rows, device=self.device), torch.arange(num_cols, device=self.device), indexing="ij"
+    #     )
+    #     env_origins[:, 0] = -(ii.flatten()[:num_envs] - (num_rows - 1) / 2) * env_spacing
+    #     env_origins[:, 1] = (jj.flatten()[:num_envs] - (num_cols - 1) / 2) * env_spacing
+    #     env_origins[:, 2] = 0.0
+    #     return env_origins
+    
     def _compute_env_origins_grid(self, num_envs: int, env_spacing: float) -> torch.Tensor:
         """Compute the origins of the environments in a grid based on configured spacing."""
         # create tensor based on number of environments
         env_origins = torch.zeros(num_envs, 3, device=self.device)
         # create a grid of origins
-        num_rows = np.ceil(num_envs / int(np.sqrt(num_envs)))
-        num_cols = np.ceil(num_envs / num_rows)
-        ii, jj = torch.meshgrid(
-            torch.arange(num_rows, device=self.device), torch.arange(num_cols, device=self.device), indexing="ij"
-        )
-        env_origins[:, 0] = -(ii.flatten()[:num_envs] - (num_rows - 1) / 2) * env_spacing
-        env_origins[:, 1] = (jj.flatten()[:num_envs] - (num_cols - 1) / 2) * env_spacing
+        # num_rows = np.ceil(num_envs / int(np.sqrt(num_envs)))
+        # num_cols = np.ceil(num_envs / num_rows)
+        # ii, jj = torch.meshgrid(
+        #     torch.arange(num_rows, device=self.device), torch.arange(num_cols, device=self.device), indexing="ij"
+        # )
+        env_origins[:, 0] = 0.0
+        env_origins[:, 1] = torch.arange(num_envs, device=self.device) * env_spacing
         env_origins[:, 2] = 0.0
         return env_origins
