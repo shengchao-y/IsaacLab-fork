@@ -174,19 +174,13 @@ class reach_box(ManagerTermBase):
         self.dist_range_xy = 1.0
 
     def reset(self, env_ids: torch.Tensor):
-        asset: Articulation = self._env.scene["robot"]
-        obj: RigidObject = self._env.scene["box"]
-        pos_left_contact = obj.data.root_pos_w[env_ids] + math_utils.quat_rotate(obj.data.root_quat_w[env_ids], self.BASIS_VEC_Y[env_ids])
-        pos_right_contact = obj.data.root_pos_w[env_ids] + math_utils.quat_rotate(obj.data.root_quat_w[env_ids], -self.BASIS_VEC_Y[env_ids])
-        to_left_hand = pos_left_contact - asset.data.body_pos_w[env_ids, asset.data.body_names.index("left_hand")]
-        to_right_hand = pos_right_contact - asset.data.body_pos_w[env_ids, asset.data.body_names.index("right_hand")]
-        to_torso = obj.data.root_pos_w[env_ids] - asset.data.body_pos_w[env_ids, asset.data.body_names.index("torso")]
-        self.dist_left[env_ids] = torch.norm(to_left_hand, p=2, dim=-1)
-        self.dist_right[env_ids] = torch.norm(to_right_hand, p=2, dim=-1)
-        self.dist_torso_xy[env_ids] = torch.norm(to_torso[:, :2], p=2, dim=-1)
-        self.prev_dist_left[env_ids] = self.dist_left[env_ids]
-        self.prev_dist_right[env_ids] = self.dist_right[env_ids]
-        self.prev_dist_torso_xy[env_ids] = self.dist_torso_xy[env_ids]
+        # this function runs before the resetting of robot and object in simulation
+        self.dist_left[env_ids] = -1
+        self.dist_right[env_ids] = -1
+        self.dist_torso_xy[env_ids] = -1
+        self.prev_dist_left[env_ids] = -1
+        self.prev_dist_right[env_ids] = -1
+        self.prev_dist_torso_xy[env_ids] = -1
 
     def __call__(
         self,
@@ -205,14 +199,21 @@ class reach_box(ManagerTermBase):
         self.prev_dist_left = self.dist_left
         self.prev_dist_right = self.dist_right
         self.prev_dist_torso_xy = self.dist_torso_xy
+
+        # reset ids
+        ids_reset = self.prev_dist_left<0
+
         self.dist_left = torch.norm(to_left_hand, p=2, dim=-1)
         self.dist_right = torch.norm(to_right_hand, p=2, dim=-1)
         self.dist_torso_xy = torch.norm(to_torso[:, :2], p=2, dim=-1)
         # not reward speed higher than 1 m/s
-        return torch.where(self.dist_torso_xy>self.dist_range_xy, 
+        result= torch.where(self.dist_torso_xy>self.dist_range_xy, 
                            torch.clamp((self.prev_dist_torso_xy - self.dist_torso_xy)/env.step_dt, max=1.0),
                            torch.clamp((self.prev_dist_left - self.dist_left) / env.step_dt, max=1.0)*0.5 \
                             + torch.clamp((self.prev_dist_right - self.dist_right) / env.step_dt, max=1.0)*0.5)
+        # no reward for the step after reset, otherwise it introduces large negative reward
+        result[ids_reset] = 0
+        return result
     
 def hold_box(
     env: ManagerBasedRLEnv, box_size_y: float, dist_range: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
