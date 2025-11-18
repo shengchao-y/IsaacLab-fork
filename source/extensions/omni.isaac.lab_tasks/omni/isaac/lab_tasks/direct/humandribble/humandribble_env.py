@@ -8,7 +8,7 @@ from __future__ import annotations
 from omni.isaac.lab_assets import HUMANOID_CFG
 
 import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import ArticulationCfg, RigidObjectCfg
+from omni.isaac.lab.assets import ArticulationCfg, RigidObjectCfg, AssetBaseCfg
 from omni.isaac.lab.envs import DirectRLEnvCfg
 from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.sim import SimulationCfg
@@ -25,6 +25,7 @@ from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.envs.common import VecEnvObs, VecEnvStepReturn
 
 ball_init_pose = (0.5, 0, 0.15)
+direction_changes = [1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0]
 
 @configclass
 class HumandribbleEnvCfg(DirectRLEnvCfg):
@@ -53,7 +54,7 @@ class HumandribbleEnvCfg(DirectRLEnvCfg):
     )
 
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=2.0, replicate_physics=True)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=1.6, replicate_physics=True)
 
     # robot
     robot: ArticulationCfg = HUMANOID_CFG.replace(prim_path="/World/envs/env_.*/Robot")
@@ -86,13 +87,19 @@ class HumandribbleEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/ball",
         spawn=sim_utils.SphereCfg(
             radius=0.11,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(linear_damping=0.8,),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(linear_damping=0.6,),
             mass_props=sim_utils.MassPropertiesCfg(density=0.08),
             collision_props=sim_utils.CollisionPropertiesCfg(),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.3, 0.6), metallic=0.2),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=ball_init_pose,),
         
+    )
+
+    # lights
+    light = AssetBaseCfg(
+        prim_path="/World/light",
+        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
 
     energy_cost_scale: float = 0.01
@@ -144,7 +151,7 @@ class HumandribbleEnv(LocomotionEnv):
         # reset ball
         self.ball.reset(env_ids)
         default_ball_state = self.ball.data.default_root_state[env_ids]
-        default_ball_state[:, :3] += self.scene.env_origins[env_ids]
+        default_ball_state[:, :3] += self.terrain.env_origins[env_ids]
 
         self.ball.write_root_pose_to_sim(default_ball_state[:, :7], env_ids)
         self.ball.write_root_velocity_to_sim(default_ball_state[:, 7:], env_ids)
@@ -172,7 +179,7 @@ class HumandribbleEnv(LocomotionEnv):
         """ change goal direction of envs_ids
         """
         num_resets = len(env_ids)
-        direction_angles_delta = (torch.rand(num_resets, dtype=torch.float32, device=self.device)*2-1) * torch.pi / 4 # [-pi/6, pi/6]
+        direction_angles_delta = (-1)**direction_changes.pop() * torch.pi / 4
         self.direction_angles[env_ids] = normalize_angle(self.direction_angles[env_ids]+direction_angles_delta)
         self.direction_quats = quat_from_euler_xyz(torch.zeros_like(self.basis_vec0[:,0]), torch.zeros_like(self.basis_vec0[:,0]), 
                                                    self.direction_angles)
@@ -181,7 +188,7 @@ class HumandribbleEnv(LocomotionEnv):
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         # breakpoint()
         died, time_out = super()._get_dones()
-        change_buf = (self.episode_length_buf+1) % 180 == 0
+        change_buf = (self.episode_length_buf+1) % 120 == 0
         change_dir_env_ids = change_buf.nonzero(as_tuple=False).squeeze(-1)
         if len(change_dir_env_ids)>0:
             self._change_direction(change_dir_env_ids)
@@ -190,7 +197,7 @@ class HumandribbleEnv(LocomotionEnv):
         right_foot_quat = self.robot.data.body_quat_w[:,-2,:]
         left_foot_up = quat_rotate(left_foot_quat, self.basis_vec1)
         right_foot_up = quat_rotate(right_foot_quat, self.basis_vec1)
-        died = died | (left_foot_up[:,2]<0.35) | (right_foot_up[:,2]<0.35) | (self.ball_dist>1)
+        died = died | (self.ball_dist>2.0) # (left_foot_up[:,2]<0.35) | (right_foot_up[:,2]<0.35) | (self.ball_dist>2.0)
         return died, time_out
 
     def _get_observations(self) -> dict:

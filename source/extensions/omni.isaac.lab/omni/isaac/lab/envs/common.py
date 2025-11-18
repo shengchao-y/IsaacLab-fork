@@ -19,17 +19,18 @@ from omni.isaac.lab.utils import configclass
 class ViewerCfg:
     """Configuration of the scene viewport camera."""
 
-    # eye: tuple[float, float, float] = (4.0, 5.0, 2.0) # Antonball
-    eye: tuple[float, float, float] = (9.0, 1.0, 1.5) # Antonball
-    # eye: tuple[float, float, float] = (9.0, 1.0, 1.0) # Humanoid
+    # eye: tuple[float, float, float] = (9.0, 2.0, 1.5) # Antonball
+    # eye: tuple[float, float, float] = (1.5, -5.0, 1.0) # Cartwheel
+    eye: tuple[float, float, float] = (4.0, 0.8, 0.0) # Humanoid
     # eye: tuple[float, float, float] = (40.0, 30.0, 10.0) # Humanoid Top view
     # eye: tuple[float, float, float] = (20.0, 20.0, 10.0) # Antonball Top view
-    # eye: tuple[float, float, float] = (3.0, 11.0, 5.0) # Go2beam Top view
+    # eye: tuple[float, float, float] = (1.8, 0.5, 0.45) # Go2beam Top view
     """Initial camera position (in m). Default is (7.5, 7.5, 7.5)."""
 
-    # lookat: tuple[float, float, float] = (20.0, 15.0, 0.0) # Humanoid Top View
-    lookat: tuple[float, float, float] = (0.0, 0.0, 0.5) # Antonball Top View
-    # lookat: tuple[float, float, float] = (0.0, 6.0, 0.0) # Go2beam Top View
+    # lookat: tuple[float, float, float] = (1.5, 0.0, 0.0) # Cartwheel View
+    lookat: tuple[float, float, float] = (0.0, 0.8, -0.5) # Humanoid View
+    # lookat: tuple[float, float, float] = (0.0, 2.0, 0.5) # Antonball View
+    # lookat: tuple[float, float, float] = (0.0, 0.5, -0.2) # Go2beam View
     """Initial camera target position (in m). Default is (0.0, 0.0, 0.0)."""
 
     cam_prim_path: str = "/OmniverseKit_Persp"
@@ -55,7 +56,7 @@ class ViewerCfg:
     * ``"asset_root"``: The center of the asset defined by :attr:`asset_name` in environment :attr:`env_index`.
     """
 
-    env_index: int = 2
+    env_index: int = 0
     # env_index: int = 0
     # env_index: int = 3 # Humanonrope
     """The environment index for frame origin. Default is 0.

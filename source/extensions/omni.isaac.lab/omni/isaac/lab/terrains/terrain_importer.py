@@ -375,7 +375,7 @@ class TerrainImporter:
         # ii, jj = torch.meshgrid(
         #     torch.arange(num_rows, device=self.device), torch.arange(num_cols, device=self.device), indexing="ij"
         # )
-        env_origins[:, 0] = 0.0
+        env_origins[:, 0] = 0.0 #-20.0
         env_origins[:, 1] = torch.arange(num_envs, device=self.device) * env_spacing
         env_origins[:, 2] = 0.0
         return env_origins
