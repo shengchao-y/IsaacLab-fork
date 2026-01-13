@@ -24,6 +24,9 @@ class HumanropePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     gage_init_std = 0.0
     num_steps_per_env = 32
     max_iterations = 12000
+    ent_schedule_iterations = 0
+    ent_schedule_init = 0.8
+    ent_schedule_end = 0.01
     save_interval = 1200
     experiment_name = "humanrope"
     empirical_normalization = False

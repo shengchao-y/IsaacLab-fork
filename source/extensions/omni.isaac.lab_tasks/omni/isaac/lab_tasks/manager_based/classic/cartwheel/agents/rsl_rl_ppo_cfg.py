@@ -21,6 +21,9 @@ class CartwheelPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     gage_change_rate = 0.0
     num_steps_per_env = 32
     max_iterations = 10000
+    ent_schedule_iterations = 0
+    ent_schedule_init = 0.8
+    ent_schedule_end = 0.01
     save_interval = 1000
     experiment_name = "cartwheel"
     empirical_normalization = False
