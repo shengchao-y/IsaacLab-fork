@@ -86,10 +86,7 @@ class ObservationsCfg:
         base_height = ObsTerm(func=mdp.base_pos_z)
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.25)
-        base_yaw_roll = ObsTerm(func=mdp.base_yaw_roll)
-        base_angle_to_target = ObsTerm(func=mdp.base_angle_to_target, params={"target_pos": (1000.0, 0.0, 0.0)})
-        base_up_proj = ObsTerm(func=mdp.base_up_proj)
-        base_heading_proj = ObsTerm(func=mdp.base_heading_proj, params={"target_pos": (1000.0, 0.0, 0.0)})
+        root_quat = ObsTerm(func=mdp.root_quat_w)
         joint_pos_norm = ObsTerm(func=mdp.joint_pos_limit_normalized)
         joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.1)
         feet_body_forces = ObsTerm(
@@ -132,21 +129,15 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Reward for moving forward
-    progress = RewTerm(func=mdp.progress_reward, weight=1.0, params={"target_pos": (1000.0, 0.0, 0.0)})
+    rew_progress = RewTerm(func=mdp.forward_speed, weight=0.4)
     # (2) Stay alive bonus
-    alive = RewTerm(func=mdp.is_alive, weight=2.0)
-    # (3) Reward for non-upright posture
-    upright = RewTerm(func=mdp.upright_posture_bonus, weight=0.1, params={"threshold": 0.93})
-    # (4) Reward for moving in the right direction
-    move_to_target = RewTerm(
-        func=mdp.move_to_target_bonus, weight=0.5, params={"threshold": 0.8, "target_pos": (1000.0, 0.0, 0.0)}
-    )
+    rew_alive = RewTerm(func=mdp.is_alive, weight=0.5)
     # (5) Penalty for large action commands
-    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
+    cost_action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
     # (6) Penalty for energy consumption
-    energy = RewTerm(
+    cost_energy = RewTerm(
         func=mdp.power_consumption,
-        weight=-0.005,
+        weight=-0.01,
         params={
             "gear_ratio": {
                 ".*_waist.*": 67.5,
@@ -162,7 +153,7 @@ class RewardsCfg:
         },
     )
     # (7) Penalty for reaching close to joint limits
-    joint_pos_limits = RewTerm(
+    cost_joint_limits = RewTerm(
         func=mdp.joint_pos_limits_penalty_ratio,
         weight=-0.25,
         params={
@@ -180,6 +171,8 @@ class RewardsCfg:
             },
         },
     )
+    # penalty for moving in y direction
+    cost_off_track = RewTerm(func=mdp.off_track, weight=-1.0)
 
 
 @configclass
@@ -189,7 +182,22 @@ class TerminationsCfg:
     # (1) Terminate if the episode length is exceeded
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # (2) Terminate if the robot falls
-    torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.8})
+    torso_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.85})
+
+
+@configclass
+class CommandsCfg:
+    """Command terms for the MDP."""
+
+    # no commands for this MDP
+    null = mdp.NullCommandCfg()
+
+
+@configclass
+class CurriculumCfg:
+    """Curriculum terms for the MDP."""
+
+    pass
 
 
 @configclass
@@ -201,10 +209,12 @@ class HumanoidEnvCfg(ManagerBasedRLEnvCfg):
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
+    commands: CommandsCfg = CommandsCfg()
     # MDP settings
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         """Post initialization."""

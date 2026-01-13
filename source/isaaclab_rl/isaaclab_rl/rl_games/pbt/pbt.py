@@ -71,8 +71,11 @@ class PbtAlgoObserver(AlgoObserver):
             Expects the objective to be at `infos[self.cfg.objective]` where self.cfg.objective is dotted address.
         """
         score = infos
-        for part in self.cfg.objective.split("."):
-            score = score[part]
+        try:
+            for part in self.cfg.objective.split("."):
+                score = score[part]
+        except (KeyError, TypeError):
+            return
         self.score = score
 
     def after_steps(self):
@@ -114,9 +117,13 @@ class PbtAlgoObserver(AlgoObserver):
         frame_left = (self.pbt_it + 1) * self.cfg.interval_steps - self.algo.frame
         print(f"Policy {self.cfg.policy_idx}, frames_left {frame_left}, PBT it {self.pbt_it}")
         try:
-            pbt_utils.save_pbt_checkpoint(self.curr_policy_dir, self.score, self.pbt_it, self.algo, self.pbt_params)
+            score = self.score
+            if isinstance(score, torch.Tensor):
+                score = float(score.item())
+            pbt_utils.save_pbt_checkpoint(self.curr_policy_dir, score, self.pbt_it, self.algo, self.pbt_params)
             ckpts = pbt_utils.load_pbt_ckpts(self.ws_dir, self.cfg.policy_idx, self.cfg.num_policies, self.pbt_it)
-            pbt_utils.cleanup(ckpts, self.curr_policy_dir)
+            if not self.cfg.keep_all_checkpoints:
+                pbt_utils.cleanup(ckpts, self.curr_policy_dir)
         except Exception as exc:
             print(f"Policy {self.cfg.policy_idx}: Exception {exc} during sanity log!")
             return
@@ -162,6 +169,15 @@ class PbtAlgoObserver(AlgoObserver):
             self.restart_flag[0] = 1
             self.printer.print_mutation_diff(cur_params, self.new_params)
 
+    def after_print_stats(self, frame, epoch_num, total_time):
+        if self.cfg.objective == "episode.total_reward_scaled":
+            mean_rewards = getattr(self.algo, "last_mean_rewards", None)
+            if mean_rewards is not None:
+                if not isinstance(mean_rewards, (list, tuple)):
+                    mean_rewards = [float(mean_rewards)]
+                    self.algo.last_mean_rewards = mean_rewards
+                self.score = float(mean_rewards[0])
+
     def _restart_with_new_params(self, new_params, restart_from_checkpoint):
         """Re-exec the current process with a filtered/augmented CLI to apply new params.
 
@@ -203,13 +219,19 @@ class PbtAlgoObserver(AlgoObserver):
 
         # Get the directory of the current file
         thisfile_dir = os.path.dirname(os.path.abspath(__file__))
+        repo_root = os.path.abspath(os.path.join(thisfile_dir, "../../../../.."))
+        isaaclab_sh = os.path.join(repo_root, "isaaclab.sh")
         isaac_sim_path = os.path.abspath(os.path.join(thisfile_dir, "../../../../../_isaac_sim"))
-        command = [f"{isaac_sim_path}/python.sh"]
+        use_isaaclab_sh = os.path.isfile(isaaclab_sh) and not self.distributed_args.distributed
+        command = [isaaclab_sh, "-p"] if use_isaaclab_sh else [f"{isaac_sim_path}/python.sh"]
 
         if self.distributed_args.distributed:
             self.distributed_args.master_port = str(pbt_utils.find_free_port())
             command.extend(self.distributed_args.get_args_list())
-        command += [modified_args[0]]
+        if use_isaaclab_sh:
+            command += [modified_args[0]]
+        else:
+            command += [modified_args[0]]
         command.extend(self.env_args.get_args_list())
         command += modified_args[1:]
         if self.distributed_args.distributed:
@@ -235,7 +257,10 @@ class PbtAlgoObserver(AlgoObserver):
                         new_parts.append(p)
                 os.environ[var] = os.pathsep.join(new_parts)
 
-            os.execv(f"{isaac_sim_path}/python.sh", command)
+            if use_isaaclab_sh:
+                os.execv(isaaclab_sh, command)
+            else:
+                os.execv(f"{isaac_sim_path}/python.sh", command)
 
 
 class MultiObserver(AlgoObserver):

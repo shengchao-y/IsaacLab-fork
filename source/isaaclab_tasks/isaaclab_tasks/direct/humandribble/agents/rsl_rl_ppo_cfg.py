@@ -1,0 +1,88 @@
+# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+from isaaclab.utils import configclass
+
+from isaaclab_rl.rsl_rl import (
+    RslRlOnPolicyRunnerCfg,
+    RslRlPpoActorCriticCfg,
+    RslRlPpoAlgorithmCfg,
+    RslRlOffPolicyRunnerCfg,
+    RslRlSacActorCriticCfg,
+    RslRlSacAlgorithmCfg,
+)
+
+
+@configclass
+class HumandribblePPORunnerCfg(RslRlOnPolicyRunnerCfg):
+    rewards_expect = {
+        "rew_ball_vel": 2.0,
+    }
+    gage_init_std = 0.0
+    num_steps_per_env = 32
+    max_iterations = 12000
+    ent_schedule_iterations = 0
+    ent_schedule_init = 0.8
+    ent_schedule_end = 0.01
+    save_interval = 1000
+    experiment_name = "humandribble_direct"
+    empirical_normalization = True
+    clip_actions = 1.0
+    policy = RslRlPpoActorCriticCfg(
+        class_name="ActorCritic",
+        init_noise_std=1.0,
+        actor_obs_normalization=True,
+        critic_obs_normalization=True,
+        actor_hidden_dims=[400, 200, 100],
+        critic_hidden_dims=[400, 200, 100],
+        activation="elu",
+    )
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.0,
+        num_learning_epochs=5,
+        num_mini_batches=4,
+        learning_rate=1.0e-4,
+        schedule="adaptive",
+        gamma=0.99,
+        lam=0.95,
+        desired_kl=0.008,
+        max_grad_norm=1.0,
+    )
+
+@configclass
+class HumandribbleSACRunnerCfg(RslRlOffPolicyRunnerCfg):
+    rewards_expect = {
+        "rew_ball_vel": 2.0,
+    }
+    num_steps_per_env = 32
+    max_iterations = 10000
+    save_interval = 50
+    experiment_name = "humandribble_direct"
+    clip_actions = 1.0
+    capacity_per_env = 300
+    policy = RslRlSacActorCriticCfg(
+        actor_hidden_dims=[400, 200, 100],
+        critic_hidden_dims=[400, 200, 100],
+        activation="elu",
+        log_std_min=-5.0,
+        log_std_max=5.0,
+        use_layer_norm=False,
+    )
+    algorithm = RslRlSacAlgorithmCfg(
+        alpha=1.0,
+        num_learning_epochs=5,
+        critic_lr=5.0e-4,
+        actor_lr=5.0e-4,
+        alpha_lr=5.0e-4,
+        gamma=0.99,
+        batch_size=8192,
+        max_grad_norm=1.0,
+        target_entropy=-10.0,
+        tau=0.005,
+        empirical_normalization=True,
+    )

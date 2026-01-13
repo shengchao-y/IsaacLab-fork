@@ -46,6 +46,18 @@ class RslRlPpoActorCriticCfg:
     activation: str = MISSING
     """The activation function for the actor and critic networks."""
 
+    gage_tech: str = "NO"
+    """The gage technique used for discrete action space."""
+
+    gage_param0: float = 0.0
+    """The param0 for gage discrete."""
+
+    gage_param1: float = 0.0
+    """The param1 for gage discrete."""
+
+    log_coef: float = 0.0
+    """The loss coefficient for logit loss."""
+
 
 @configclass
 class RslRlPpoActorCriticRecurrentCfg(RslRlPpoActorCriticCfg):
@@ -124,6 +136,73 @@ class RslRlPpoAlgorithmCfg:
 
     symmetry_cfg: RslRlSymmetryCfg | None = None
     """The symmetry configuration. Default is None, in which case symmetry is not used."""
+
+
+@configclass
+class RslRlSacActorCriticCfg:
+    """Configuration for the SAC actor-critic networks."""
+
+    class_name: str = "SACActorCritic"
+    """The policy class name. Default is SACActorCritic."""
+
+    actor_hidden_dims: list[int] = MISSING
+    """The hidden dimensions of the actor network."""
+
+    critic_hidden_dims: list[int] = MISSING
+    """The hidden dimensions of the critic network."""
+
+    activation: str = MISSING
+    """The activation function for the actor and critic networks."""
+
+    use_layer_norm: bool = False
+    """Whether to use layer normalization."""
+
+    log_std_min: float = MISSING
+    """The minimum log standard deviation for the policy."""
+
+    log_std_max: float = MISSING
+    """The maximum log standard deviation for the policy."""
+
+
+@configclass
+class RslRlSacAlgorithmCfg:
+    """Configuration for the SAC algorithm."""
+
+    class_name: str = "SAC"
+    """The algorithm class name. Default is SAC."""
+
+    target_entropy: float = MISSING
+    """The target entropy for the policy."""
+
+    num_learning_epochs: int = MISSING
+    """The number of learning epochs per update."""
+
+    batch_size: int = MISSING
+    """The batch size for the policy training per update."""
+
+    actor_lr: float = MISSING
+    """The learning rate for the actor network."""
+
+    critic_lr: float = MISSING
+    """The learning rate for the critic network."""
+
+    alpha_lr: float = MISSING
+    """The learning rate for the temperature parameter."""
+
+    alpha: float = MISSING
+    """The init value of the temperature parameter."""
+
+    gamma: float = MISSING
+    """The discount factor."""
+
+    tau: float = MISSING
+    """The soft update coefficient."""
+
+    max_grad_norm: float = MISSING
+    """The maximum gradient norm."""
+
+    empirical_normalization: bool = MISSING
+    """Whether to use empirical normalization."""
 
 
 #########################
@@ -223,6 +302,24 @@ class RslRlBaseRunnerCfg:
     If regex expression, the latest (alphabetical order) matching file will be loaded.
     """
 
+    rewards_expect: dict[str, object] | None = None
+    """Expected reward values for reward shaping or normalization. Defaults to None."""
+
+    gage_init_std: float | None = None
+    """Initial standard deviation for GAGE exploration. Defaults to None."""
+
+    gage_change_rate: float | None = None
+    """Change rate for GAGE exploration. Defaults to None."""
+
+    ent_schedule_iterations: int | None = None
+    """Entropy schedule iterations for GAGE. Defaults to None."""
+
+    ent_schedule_init: float | None = None
+    """Initial entropy coefficient for scheduling. Defaults to None."""
+
+    ent_schedule_end: float | None = None
+    """Final entropy coefficient for scheduling. Defaults to None."""
+
 
 @configclass
 class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
@@ -235,4 +332,21 @@ class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
     """The policy configuration."""
 
     algorithm: RslRlPpoAlgorithmCfg = MISSING
+    """The algorithm configuration."""
+
+
+@configclass
+class RslRlOffPolicyRunnerCfg(RslRlBaseRunnerCfg):
+    """Configuration of the runner for off-policy algorithms."""
+
+    class_name: str = "OffPolicyRunner"
+    """The runner class name. Default is OffPolicyRunner."""
+
+    capacity_per_env: int = MISSING
+    """The capacity of the replay buffer per environment."""
+
+    policy: RslRlSacActorCriticCfg = MISSING
+    """The policy configuration."""
+
+    algorithm: RslRlSacAlgorithmCfg = MISSING
     """The algorithm configuration."""

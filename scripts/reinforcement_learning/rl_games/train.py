@@ -82,6 +82,7 @@ from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_yaml
 
 from isaaclab_rl.rl_games import MultiObserver, PbtAlgoObserver, RlGamesGpuEnv, RlGamesVecEnvWrapper
+from isaaclab_rl.rl_games.observers import IsaacAlgoObserverWithSigma
 
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.hydra import hydra_task_config
@@ -211,10 +212,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # create runner from rl-games
 
     if "pbt" in agent_cfg and agent_cfg["pbt"]["enabled"]:
-        observers = MultiObserver([IsaacAlgoObserver(), PbtAlgoObserver(agent_cfg, args_cli)])
+        observers = MultiObserver([IsaacAlgoObserverWithSigma(), PbtAlgoObserver(agent_cfg, args_cli)])
         runner = Runner(observers)
     else:
-        runner = Runner(IsaacAlgoObserver())
+        runner = Runner(IsaacAlgoObserverWithSigma())
 
     runner.load(agent_cfg)
 

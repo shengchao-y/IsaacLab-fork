@@ -56,19 +56,19 @@ import platform
 from packaging import version
 
 # check minimum supported rsl-rl version
-RSL_RL_VERSION = "3.0.1"
-installed_version = metadata.version("rsl-rl-lib")
-if version.parse(installed_version) < version.parse(RSL_RL_VERSION):
-    if platform.system() == "Windows":
-        cmd = [r".\isaaclab.bat", "-p", "-m", "pip", "install", f"rsl-rl-lib=={RSL_RL_VERSION}"]
-    else:
-        cmd = ["./isaaclab.sh", "-p", "-m", "pip", "install", f"rsl-rl-lib=={RSL_RL_VERSION}"]
-    print(
-        f"Please install the correct version of RSL-RL.\nExisting version is: '{installed_version}'"
-        f" and required version is: '{RSL_RL_VERSION}'.\nTo install the correct version, run:"
-        f"\n\n\t{' '.join(cmd)}\n"
-    )
-    exit(1)
+# RSL_RL_VERSION = "3.0.1"
+# installed_version = metadata.version("rsl-rl")
+# if version.parse(installed_version) < version.parse(RSL_RL_VERSION):
+#     if platform.system() == "Windows":
+#         cmd = [r".\isaaclab.bat", "-p", "-m", "pip", "install", f"rsl-rl-lib=={RSL_RL_VERSION}"]
+#     else:
+#         cmd = ["./isaaclab.sh", "-p", "-m", "pip", "install", f"rsl-rl-lib=={RSL_RL_VERSION}"]
+#     print(
+#         f"Please install the correct version of RSL-RL.\nExisting version is: '{installed_version}'"
+#         f" and required version is: '{RSL_RL_VERSION}'.\nTo install the correct version, run:"
+#         f"\n\n\t{' '.join(cmd)}\n"
+#     )
+#     exit(1)
 
 """Rest everything follows."""
 
@@ -79,6 +79,10 @@ from datetime import datetime
 
 import omni
 from rsl_rl.runners import DistillationRunner, OnPolicyRunner
+try:
+    from rsl_rl.runners import OffPolicyRunner
+except ImportError:
+    OffPolicyRunner = None
 
 from isaaclab.envs import (
     DirectMARLEnv,
@@ -190,6 +194,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
     elif agent_cfg.class_name == "DistillationRunner":
         runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+    elif agent_cfg.class_name == "OffPolicyRunner":
+        if OffPolicyRunner is None:
+            raise ImportError(
+                "OffPolicyRunner is not available in the installed rsl-rl-lib. "
+                "Please install a compatible rsl-rl-lib that provides OffPolicyRunner."
+            )
+        runner = OffPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
     else:
         raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
     # write git state to logs
@@ -205,7 +216,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     dump_yaml(os.path.join(log_dir, "params", "agent.yaml"), agent_cfg)
 
     # run training
-    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    init_random = True
+    if getattr(agent_cfg, "gage_init_std", None) is not None or getattr(agent_cfg, "rewards_expect", None) is not None:
+        init_random = False
+    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=init_random)
 
     # close the simulator
     env.close()

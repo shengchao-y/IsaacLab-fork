@@ -61,3 +61,6 @@ class PbtCfg:
             "agent.params.config.entropy_coef": "mutate_float"
         }
     """
+
+    keep_all_checkpoints: bool = False
+    """If True, do not delete old PBT checkpoints."""

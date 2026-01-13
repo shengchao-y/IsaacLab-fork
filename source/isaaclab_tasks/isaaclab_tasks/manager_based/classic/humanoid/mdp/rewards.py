@@ -141,3 +141,32 @@ class power_consumption(ManagerTermBase):
         asset: Articulation = env.scene[asset_cfg.name]
         # return power = torque * velocity (here actions: joint torques)
         return torch.sum(torch.abs(env.action_manager.action * asset.data.joint_vel * self.gear_ratio_scaled), dim=-1)
+
+
+def forward_speed(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Reward for moving forward in world x direction."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    return asset.data.root_vel_w[:, 0]
+
+
+def noside_posture_bonus(
+    env: ManagerBasedRLEnv, threshold: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward for maintaining a sideways posture constraint."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    side_vec = torch.tensor((0.0, 1.0, 0.0), device=asset.data.device).repeat(asset.data.GRAVITY_VEC_W.shape[0], 1)
+    side_proj = math_utils.quat_apply(asset.data.root_quat_w, side_vec)[:, 1]
+    return (side_proj > threshold).float()
+
+
+def off_track(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalty for drifting sideways in world y direction."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    return torch.abs(asset.data.root_vel_w[:, 1])
+
+
+def heading_forward(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Reward for heading forward."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    heading_vec = math_utils.quat_apply(asset.data.root_quat_w, asset.data.FORWARD_VEC_B)
+    return heading_vec[:, 0]

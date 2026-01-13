@@ -5,7 +5,14 @@
 
 from isaaclab.utils import configclass
 
-from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg
+from isaaclab_rl.rsl_rl import (
+    RslRlOnPolicyRunnerCfg,
+    RslRlPpoActorCriticCfg,
+    RslRlPpoAlgorithmCfg,
+    RslRlOffPolicyRunnerCfg,
+    RslRlSacActorCriticCfg,
+    RslRlSacAlgorithmCfg,
+)
 
 
 @configclass
@@ -14,6 +21,8 @@ class HumanoidPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     max_iterations = 1000
     save_interval = 50
     experiment_name = "humanoid_direct"
+    empirical_normalization = True
+    clip_actions = 1.0
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
         actor_obs_normalization=True,
@@ -35,4 +44,35 @@ class HumanoidPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         lam=0.95,
         desired_kl=0.008,
         max_grad_norm=1.0,
+    )
+
+
+@configclass
+class HumanoidSACRunnerCfg(RslRlOffPolicyRunnerCfg):
+    num_steps_per_env = 16
+    max_iterations = 12000
+    save_interval = 50
+    experiment_name = "humanoid_direct"
+    clip_actions = 1.0
+    capacity_per_env = 300
+    policy = RslRlSacActorCriticCfg(
+        actor_hidden_dims=[400, 200, 100],
+        critic_hidden_dims=[400, 200, 100],
+        activation="elu",
+        log_std_min=-5.0,
+        log_std_max=5.0,
+        use_layer_norm=False,
+    )
+    algorithm = RslRlSacAlgorithmCfg(
+        alpha=1.0,
+        num_learning_epochs=5,
+        critic_lr=3.0e-4,
+        actor_lr=3.0e-4,
+        alpha_lr=3.0e-4,
+        gamma=0.99,
+        batch_size=2048,
+        max_grad_norm=1.0,
+        target_entropy=-10.0,
+        tau=0.005,
+        empirical_normalization=True,
     )

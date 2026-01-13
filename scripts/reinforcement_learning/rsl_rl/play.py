@@ -59,6 +59,10 @@ import time
 import torch
 
 from rsl_rl.runners import DistillationRunner, OnPolicyRunner
+try:
+    from rsl_rl.runners import OffPolicyRunner
+except ImportError:
+    OffPolicyRunner = None
 
 from isaaclab.envs import (
     DirectMARLEnv,
@@ -143,6 +147,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     elif agent_cfg.class_name == "DistillationRunner":
         runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+    elif agent_cfg.class_name == "OffPolicyRunner":
+        if OffPolicyRunner is None:
+            raise ImportError(
+                "OffPolicyRunner is not available in the installed rsl-rl-lib. "
+                "Please install a compatible rsl-rl-lib that provides OffPolicyRunner."
+            )
+        runner = OffPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     else:
         raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
     runner.load(resume_path)
