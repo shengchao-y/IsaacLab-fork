@@ -27,8 +27,8 @@ import math
 ##
 # Scene definition
 ##
-_robot_orientation = (0.7071068, 0, 0, 0.7071068)
-# _robot_orientation = (0.9914449, 0, 0.1305262, 0)
+# _robot_orientation = (0.7071068, 0, 0, 0.7071068)
+_robot_orientation = (0.9914449, 0, 0.1305262, 0)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
