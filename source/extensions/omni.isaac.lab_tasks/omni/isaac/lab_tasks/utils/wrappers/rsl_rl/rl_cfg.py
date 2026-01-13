@@ -160,6 +160,19 @@ class RslRlOnPolicyRunnerCfg:
     If regex expression, the latest (alphabetical order) matching file will be loaded.
     """
 
+    # Entropy schedule options (optional; used by custom trainers)
+    ent_schedule_type: str = "linear"
+    """The entropy schedule type. Default is "linear"."""
+
+    ent_schedule_restart_iterations: int = 0
+    """The restart interval for cosine annealing. Default is 0 (no restart)."""
+
+    ent_schedule_restart_mult: float = 1.0
+    """The restart multiplier for cosine annealing. Default is 1.0."""
+
+    ent_schedule_decay: float = 1.0
+    """The decay factor per restart cycle. Default is 1.0."""
+
 @configclass
 class RslRlSacActorCriticCfg:
     """Configuration for the PPO actor-critic networks."""
